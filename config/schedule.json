@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "mode": "daily",
+  "interval_minutes": 180,
+  "daily_times": [
+    "09:00",
+    "12:00",
+    "15:00",
+    "18:00"
+  ],
+  "hours": 4.0,
+  "max_runtime_seconds": 900,
+  "skip_if_last_unfinished": true,
+  "skip_holidays": true,
+  "quiet_window": [
+    "21:00-08:00"
+  ]
+}

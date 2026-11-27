@@ -1,0 +1,103 @@
+待办汇总助手 v1.5.4 (完整 App 正式版) (QQ表结构固化与彻底卸载全链路修复版)
+构建时间: 2026-11-26 23:30:00
+构建通道: stable
+Python 要求: 3.10 ~ 3.13；**无需预装**——tools/python_bootstrap.py 可离线/在线
+             自动准备便携运行时（打包于 vendor/python，见 获取Python.bat）。
+             随包 vendor/wheels 已离线提供依赖。旧口径「无环境时支持一键  R13 / v1.5.0 (2026-11-06) 完整 App 产品化体验与可视化向导飞跃 (本次核心迭代)：
+      1. 【P0 核心流程】全流程可视化首次启动新手向导 (Wizard Stepper)：
+         - 告别黑框 CLI 命令行问答，实现 6 步沉浸式向导（欢迎介绍 ➔ 本机环境与聊天软件自动体检 ➔ 核心通道装配与秒级取密钥 ➔ 连通测试与高保真实战待办示例体验 ➔ 调度计划 ➔ 完成进入）；
+         - 支持上一步/下一步回退、跳过、断点恢复（config/wizard_state.json）与控制台常驻重新配置入口；
+         - 内置高校与行政协同场景真实脱敏示例素材生成与提炼清单即时渲染，零数据冷启动获得感拉满。
+      2. 【P1 产品架构】现代化 App 结构化多视图与交互反馈体系：
+         - 导航划分为 4 大核心视图：📊 监控大盘、📋 待办素材与清单、⚙️ 系统设置中心、ℹ️ 关于与指南；
+         - 待办素材流支持按平台（QQ/微信/企微/飞书）过滤查看，最新 Markdown 清单支持一键复制，历史产物文件点击即时预览；
+         - 首屏沉浸式平滑 Splash 加载态、断网自动重连告警横幅、全量替换原生 alert 为四色优雅 Toast 通知气泡、各模块空状态（Empty States）引导。
+      3. 【P2 工程交付】标准化开箱即用与交付封装：
+         - 内置标准 favicon.ico 桌面与浏览器应用图标，消除 404；
+         - 新增标准产品级 README.md 使用与架构说明；
+         - 离线依赖、环境变量与便携 Python 自动就绪，单文件一键打包与极简双击部署。
+
+自动补齐）
+
+迭代记录：
+  R14 / v1.5.4  2026-11-26  QQ 表结构固化与内置彻底卸载全链路修复：
+      1. 修复 tools/qqdb.py、tools/qqnames.py、tools/wxmsg.py 缺失 import common 导致的 NameError（解决 QQ 密钥就绪后表结构固化失败，以及群名/昵称/微信通讯录映射静默失效）；统一 probe.py SQL 标识符转义与 diagnose_collect.py/admin_init.py 空路径防护。
+      2. 对齐前端向导第 3 步（wzSaveStep3Config）与 /api/config 字段契约并防止空 Webhook 覆盖已有配置；/api/qq/extract-key 新增「已有有效密钥缺 schema.json 时自动完成表结构固化」修复路径。
+      3. 重构内置「一键彻底卸载并清理全部数据」全链路：/api/app/uninstall 先完整刷出响应再按结果延迟退出；前端暂停轮询并加长超时与自动关窗；uninstaller.py 新增陈旧 PID 存活校验、console_port.json 进程识别、全量敏感/产物/表结构清理及脱离进程精准终止隔离浏览器进程并重试删除 work/.app_profile 与占用日志。
+  R1  2026-10-27  双程序包拆分：实施员初始化包 + 用户日常运行包
+  R2  2026-10-29  真机解密打通：SQLCipher 参数顺序 + 1024 字节私有头 + 群名/昵称映射
+  R3  2026-10-29  0 条四态判定 + 游标只推进到已处理时间，堵住离线丢数据
+  R4  2026-10-29  私聊方向修复：本人发言标『我（本人）』，会话名取对方真名
+  R5  2026-10-29  稳定性加固：辅助库沙箱隔离 + 倒序防堆积截断 + 空载游标推进 + 单实例互斥锁 + 大 Blob 熔断 + 原子落盘 + 提示词去硬编码 + 取密钥超时
+  R6  2026-10-30  全栈稳定性修复：run.py 缩进语法错误修复 + 游标多渠道签名与推进对齐 + 多渠道异常隔离 + server.py 敏感配置与路径防护 + index.html XSS 与请求并发防抖
+  R7  2026-11-05  全环境与全平台密钥增强：
+      1. 微信 4.x 纯原生内存扫描：彻底移除 Frida 依赖，完美兼容 Python 3.10 ~ 3.13（包括 WorkBuddy 内置 3.13.12），Windows 内核只读扫描 Weixin.exe 进程内存，无需重启微信、秒级自动抓取 64 位密钥并完成明文解密，控制台全自动呼出执行，零手动输入。
+      2. 批处理转义修复与通用 Python 运行环境自动补齐：修复 .bat 隐藏转义字符，支持 WorkBuddy、AppData、C:\Python、PATH、Conda 等任意安装位置；无 Python 机器支持通过 PowerShell 自动准备便携环境。
+      3. QQ 数据库全盘多目录智能定位：自动检索系统盘/多盘符、全用户 Documents/文档 目录与 OneDrive 重定向，精准绑定 nt_msg.db，彻底解决“未定位数据库”。
+      4. 企微协同定位明晰：明确区分 Webhook（待办推送出口）与会话存档，优化 30 秒快捷配置指引。
+  R8  2026-11-05  定时调度落地 + 微信密钥/消息链路重建（详见 docs/功能清单与本次补全说明.md）：
+      1. 新增 tools/scheduler.py：真正的本地定时调度（interval / daily 两种计划，
+         config/schedule.json 热加载，状态与历史落 work/schedule_state.json），
+         不再依赖 schtasks；server.py 新增 GET/POST /api/schedule，/api/control 改为真启停，
+         main() 默认拉起调度线程（--no-scheduler 可关）。
+      2. setup_autostart 新增常驻调度自启项，并修复「用户包没有 .venv 导致自启静默失败」。
+      3. 微信链路重建：tools/wxcrypto.py（AES 三档降级）、tools/wxdecrypt.py
+         （SQLCipher4 内核 + WAL 已提交帧合并 + 库级错误分类）、tools/wxkey.py
+         （四种密钥来源 + page1 校验闸门 + 内存扫描 + 体检 CLI）、tools/wxmsg.py
+         （类型覆盖/XML 解析/zstd 探测/群聊发送人还原/通讯录取名）。
+      4. 修掉三处致命断点：调用 decrypt_all 少传一层 WECHAT_DATA_ROOT（密钥有了也不出镜像）、
+         密钥不校验就写 .env（过期密钥静默生效）、page1 校验写死 reserve=80（正确密钥被判错）。
+      5. 自测从「假跑」改为真链路：tools/wx_selftest.py 用真 SQLCipher 造样本，
+         真取密钥（含桩进程内存扫描）、真解密、真读消息、逐条核对。
+      6. automation-prompt 明确「采集归调度器、提炼归 WorkBuddy」，并加 0.5 节调度自检。
+
+      R12 / v1.4.2（2026-11-06）定时节奏与交付打包：
+      1. 采集与提炼统一为「每 3 小时」：config/schedule.json interval_minutes=180、
+         回看 4 小时；WorkBuddy 自动化 rrule=FREQ=HOURLY;INTERVAL=3。
+      2. 新增可迁移交付包（README-部署与迁移.md）：列出依赖环境、配置项、
+         启动方式、另一台机器的迁移步骤与验收清单。
+      3. 说明-使用者 / 说明-实施员 / automation-prompt 的时间与微信取密钥表述
+         同步为当前实现（4.0/4.1 通用，2~3 秒，无需重启微信）。
+
+      R11 / v1.4.1（2026-11-06）采集判定与解码收尾：
+      1. config/active_platforms.json 新增 optional_platforms：已声明为可选的通道
+         未接入时不再冻结游标、不把整轮判成 PARTIAL，但仍写入
+         meta.optional_missing_channels 与清单末尾，不静默。
+      2. 修掉提示词里的取值错误：待办素材的消息在**顶层 messages**，
+         旧文写 meta.messages，提炼时会一条都读不到。
+      3. 老 .venv 缺 zstandard 时，run.py 第 1 步自动从 vendor/wheels 补装一次
+         （marker: work/.optional_deps_checked），此前只在新建 .venv 时安装，
+         升级覆盖的用户永远装不上，微信 zstd 正文解不出来。
+      4. 用户包默认把 WeCom 声明为可选：没有授权连接器时不再导致整轮无清单。
+      5. 控制台单实例保护：Windows 下 allow_reuse_address=1 会让两个进程同时监听
+         8000，请求被随机分给旧进程，表现为「改了不生效 / 取密钥时好时坏」。
+         现在第二个实例绑不上端口，探测到 /api/ping 就提示「已在运行」并退出。
+
+      R10 / v1.4.0（2026-11-06）微信 4.1+ 取密钥彻底打通（本次核心）：
+      1. 真正的根因：4.1 不再把 x'<key><salt>' 明文放内存，而是放在
+         com.Tencent.WCDB.Config.Cipher 配置对象的 blob 里，用固定 40 字节掩码 XOR。
+         旧方案（搜明文 / 搜 salt 邻域 / 挂 SHA512）在 4.1 上必然 0 命中。
+      2. tools/wxkey.py 新增 scan_config_cipher()：定位标记字符串 → (ptr,len) 对 →
+         node+0x28 → Config+0x88 取 (data_ptr,data_len) → XOR 解码 → 逐库密钥。
+      3. 4.1+ 是「每库一密钥」：新增 work/wx_keys.json 密钥环，一次抓取覆盖全部库；
+         tools/wxdecrypt.py 支持 direct（raw key 直连 AES）与 passphrase 双模式，
+         校验改用 page1 HMAC-SHA512（精确，不再是猜页头字节）。
+      4. 实测：2.4 秒取到 20/20 个库；message_0.db 701 页 HMAC 全通过；
+         7 天窗口读到 487 条（文本300 链接165 表情40 转账16 系统6 引用5 文件3）。
+      5. 群聊发送人前缀支持 @openim / @chatroom / 纯数字 id，发送人还原成真实昵称。
+      6. vendor/wheels 增加 zstandard（cp310~cp313）离线 wheel，正文 zstd 解压开箱可用。
+      7. 控制台文案更正：不再提示「4.1 需重启微信」，改为 2~3 秒自动抓取。
+
+      R9 / v1.3.1（2026-11-05）微信取密钥超时与假死修复：
+      1. 控制台长任务改异步 job：POST /api/wechat/extract-key 立即返回 job id，
+         GET /api/wechat/key-job 轮询进度；前端 8 秒超时不再把结果丢掉，
+         错误文案不再误报「监控台已卡住」。
+      2. 扫描只针对内存最大的 Weixin.exe 主进程（原先连 4 个插件进程一起扫，
+         多读约 600MB、多花 4~6 秒）。
+      3. 新增 tools/wxhook.py：微信 4.1+ 静态内存不再保留 raw key，
+         改为启动瞬间挂载 sha512_block 入口、捕获 PBKDF2 的 HMAC ipad 块还原密钥，
+         动态解析 DLL 特征（本机 4.1.15.56 → RVA 0x5a18f80），page1 校验通过才落盘。
+      4. vendor/wheels 增加 frida 16.7.19 离线 wheel（17.x 在 Win10 attach 失败）。
+      5. 新增 docs/微信密钥抓取-超时与卡死排查.md（原因、排查顺序、现象对照表）。
+
+隐私说明：包内不含敏感 .env（密钥）、work/（解密缓存）、output/（历史清单）。

@@ -1,0 +1,39 @@
+# Secrets & local environment config
+.env
+.env.*
+!.env.example
+*.key
+key_windows.txt
+vendor/wechat-key/*.txt
+vendor/wechat-key/decrypted/
+
+# Runtime data, decrypted mirrors & outputs
+work/
+output/
+data/
+dist/
+*.lnk
+*.tmp_*
+config/schema.json
+config/active_platforms.json
+config/wizard_state.json
+automation-prompt.local.md
+
+# Local databases & logs
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Python virtualenvs & caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS & editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,32 @@
+# 待办总结助手 v1.5.4 · 依赖清单
+#
+# 说明：核心依赖已随包放在 vendor\wheels\（Windows x64 预编译），
+#       Install.bat / Admin_Init.bat 会离线安装，无需联网、无需 pip 源。
+#       本文件只作说明与手工安装时的参考。
+
+# 解 QQ 的 SQLCipher 数据库（必需）
+sqlcipher3-wheels==0.5.7
+
+# AES 实现；缺失时会自动降级到 Windows CNG（功能不受影响）
+pycryptodome==4.2.0
+
+# 解微信 zstd 压缩正文（可选；缺了会少读到部分正文，不影响密钥与解密）
+zstandard==0.25.0
+
+# 中国法定节假日与周末调休补班判断（调度器智能跳过节假日必需；缺失时自动降级为周一至周五判断）
+chinese-calendar>=1.9.1
+
+# 仅“启动瞬间抓取”兜底方案需要；常规取密钥（4.0/4.1 通用）不需要
+# 固定 16.7.19：17.x 在 Win10 报 "Unable to locate the ntdll loader TLS routines"
+frida==16.7.19
+
+# ---------------------------------------------------------------
+# 无需预装 Python：双击「获取Python.bat」即可自动准备便携运行时
+# （tools/python_bootstrap.py，离线资产在 vendor/python）。
+# 便携运行时没有 pip，依赖由 wheel 直接解压安装，本文件仅作说明。
+# ---------------------------------------------------------------
+# Python 版本要求：3.10 / 3.11 / 3.12 / 3.13（64 位）
+# wheel 覆盖情况：sqlcipher3 与 zstandard 各有 cp310~cp313 四个版本，
+#                pycryptodome 为 cp39-abi3（向上兼容），frida 为 cp37-abi3，
+#                chinese-calendar 为纯 Python 包（py3-none-any）。
+# ---------------------------------------------------------------

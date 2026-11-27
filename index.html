@@ -1,0 +1,3757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>待办自动汇总助手 · 桌面控制台</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --bg-canvas: #0b0f14;
+      --bg-surface: #121820;
+      --bg-elevated: #18202b;
+      --bg-inset: #090d12;
+      --border-subtle: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text-main: #edf2f7;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #2f81f7;
+      --primary-hover: #3b82f6;
+      --primary-soft: rgba(47, 129, 247, 0.14);
+      --teal: #14b8a6;
+      --teal-soft: rgba(20, 184, 166, 0.14);
+      --cyan: #38bdf8;
+      --amber: #eab308;
+      --amber-soft: rgba(234, 179, 8, 0.14);
+      --rose: #f43f5e;
+      --rose-soft: rgba(244, 63, 94, 0.14);
+      --purple: #a78bfa;
+      --font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-mono: "Cascadia Mono", "JetBrains Mono", "Consolas", ui-monospace, SFMono-Regular, monospace;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body { padding: 18px 22px 32px; }
+
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.22); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.38); }
+
+    /* 键盘焦点态无障碍支持 */
+    :focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* 统一 SVG 图标尺寸 */
+    .ic { width: 16px; height: 16px; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+    .ic-sm { width: 15px; height: 15px; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+    .ic-xs { width: 13px; height: 13px; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+    .ic-lg { width: 20px; height: 20px; flex-shrink: 0; display: inline-block; vertical-align: middle; }
+
+    /* 平台专属微标 */
+    .plat-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      flex-shrink: 0;
+    }
+    .plat-qq { background: rgba(47, 129, 247, 0.18); color: #60a5fa; border: 1px solid rgba(47, 129, 247, 0.35); }
+    .plat-wx { background: rgba(20, 184, 166, 0.16); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.35); }
+    .plat-fs { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.32); }
+    .plat-dt { background: rgba(167, 139, 250, 0.16); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.32); }
+    .plat-wc { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35); }
+    .c-title-row { display: inline-flex; align-items: center; gap: 8px; }
+
+    .container { max-width: 1420px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ==================== 一体化桌面工作台顶栏 ==================== */
+    .topbar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-inset);
+      border: 1px solid var(--border-strong);
+      overflow: hidden;
+    }
+    .brand-mark svg { width: 32px; height: 32px; }
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-ver {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 1px 6px;
+      border-radius: 5px;
+    }
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 分段式主导航 */
+    .app-nav {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .nav-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 7px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .nav-tab.active {
+      color: #ffffff;
+      background: var(--bg-elevated);
+      border-color: var(--border-strong);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .nav-tab.active .nav-icon { color: var(--primary); }
+    .nav-icon { display: inline-flex; align-items: center; color: var(--text-muted); }
+    .nav-badge {
+      background: var(--primary);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      font-weight: 700;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--teal-soft);
+      color: #5eead4;
+      border: 1px solid rgba(20, 184, 166, 0.35);
+    }
+    .status-pill.waiting {
+      background: var(--amber-soft);
+      color: #fde047;
+      border-color: rgba(234, 179, 8, 0.38);
+    }
+    .status-pill.paused {
+      background: var(--rose-soft);
+      color: #fda4af;
+      border-color: rgba(244, 63, 94, 0.38);
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+      display: inline-block;
+    }
+
+    /* ==================== 遥测指标行 ==================== */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1024px) { .metrics-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .metrics-row { grid-template-columns: 1fr; } }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-top: 2px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .metric-card.m-time { border-top-color: var(--primary); }
+    .metric-card.m-cursor { border-top-color: var(--cyan); }
+    .metric-card.m-mat { border-top-color: var(--teal); }
+    .metric-card.m-prog { border-top-color: var(--purple); }
+    .metric-card .title {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-card .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      margin-top: 2px;
+    }
+    .metric-card .sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ==================== 告警横幅 ==================== */
+    .banner-warning {
+      background: rgba(234, 179, 8, 0.08);
+      border: 1px solid rgba(234, 179, 8, 0.32);
+      color: #fef08a;
+      padding: 11px 15px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .conn-down-banner {
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fecdd3;
+      padding: 10px 15px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ==================== 主分栏：流水线 + 终端日志 ==================== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-sub { font-size: 12px; color: var(--text-muted); }
+
+    /* 流水线列表 */
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: border-color 0.16s ease;
+    }
+    .task-item:hover { border-color: var(--border-strong); }
+    .task-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .task-id { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+    .task-name { font-size: 13px; font-weight: 600; color: var(--text-main); }
+    .task-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .tag-complete { background: var(--teal-soft); color: #5eead4; border: 1px solid rgba(20, 184, 166, 0.3); }
+    .tag-running { background: var(--primary-soft); color: #60a5fa; border: 1px solid rgba(47, 129, 247, 0.3); }
+    .tag-queued { background: rgba(148, 163, 184, 0.12); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
+    .tag-paused { background: var(--rose-soft); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    .progress-bar-bg {
+      height: 5px;
+      background: var(--bg-inset);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--teal) 100%);
+      transition: width 0.35s ease;
+      border-radius: 99px;
+    }
+
+    /* 终端控制台 */
+    .terminal-window {
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #dbe4f0;
+      height: 492px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .log-line { display: flex; gap: 8px; line-height: 1.45; word-break: break-all; }
+    .log-time { color: var(--text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .log-level { font-weight: 700; flex-shrink: 0; width: 62px; }
+    .lvl-STEP { color: var(--cyan); }
+    .lvl-SUCCESS { color: #34d399; }
+    .lvl-INFO { color: #93c5fd; }
+    .lvl-WARN { color: var(--amber); }
+    .lvl-SYSTEM { color: var(--purple); }
+    .log-msg { color: #e2e8f0; }
+
+    /* ==================== 按钮系统 ==================== */
+    .btn {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: rgba(255,255,255,0.08); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-main); border-color: var(--border-strong); }
+    .btn-secondary:hover:not(:disabled) { background: #212c3b; border-color: rgba(148,163,184,0.45); }
+    .btn-success { background: #0d9488; color: #fff; border-color: rgba(20, 184, 166, 0.4); }
+    .btn-success:hover:not(:disabled) { background: #0f766e; }
+    .btn-danger { background: rgba(244, 63, 94, 0.15); color: #fda4af; border-color: rgba(244, 63, 94, 0.4); }
+    .btn-danger:hover:not(:disabled) { background: #e11d48; color: #fff; }
+    .btn-ghost-accent {
+      background: var(--primary-soft);
+      color: #60a5fa;
+      border-color: rgba(47, 129, 247, 0.35);
+    }
+    .btn-ghost-accent:hover:not(:disabled) { background: rgba(47, 129, 247, 0.24); }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+    .btn-xs {
+      padding: 4px 9px;
+      font-size: 11.5px;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: inherit;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-xs-primary { background: var(--primary); color: #fff; }
+    .btn-xs-primary:hover { background: var(--primary-hover); }
+    .btn-xs-secondary { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border-strong); }
+    .btn-xs-secondary:hover { background: #212c3b; color: var(--text-main); }
+    .btn-xs-success { background: #0d9488; color: #fff; }
+
+    /* ==================== 设置与配置中心 ==================== */
+    .config-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .config-card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .guide-callout {
+      background: rgba(47, 129, 247, 0.08);
+      border: 1px solid rgba(47, 129, 247, 0.28);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 12.5px;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+    .mode-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 900px) { .mode-options { grid-template-columns: 1fr; } }
+    .mode-box {
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color 0.16s ease, background 0.16s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .mode-box:hover { border-color: var(--border-strong); }
+    .mode-box.active {
+      border-color: var(--primary);
+      background: rgba(47, 129, 247, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(47, 129, 247, 0.35);
+    }
+    .mode-box .m-title { font-weight: 700; font-size: 13.5px; color: var(--text-main); display: flex; align-items: center; gap: 7px; }
+    .mode-box .m-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .platform-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .platform-item:hover { border-color: var(--border-strong); }
+    .platform-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .platform-item .p-label { font-size: 13px; font-weight: 600; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px; }
+    .platform-item .p-tag {
+      margin-left: auto;
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--bg-inset);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .platform-item.checked {
+      border-color: rgba(20, 184, 166, 0.45);
+      background: rgba(20, 184, 166, 0.07);
+    }
+
+    .params-accordion {
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .params-accordion summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cyan);
+      outline: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .form-group input, .form-group textarea {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      color: var(--text-main);
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
+    .btn-row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* 多平台状态卡片 */
+    .channel-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .channel-guide-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .channel-guide-card.ready { border-color: rgba(20, 184, 166, 0.45); }
+    .channel-guide-card.waiting { border-color: rgba(234, 179, 8, 0.35); }
+    .channel-guide-card.alert { border-color: rgba(244, 63, 94, 0.45); }
+    .c-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--text-main); }
+    .c-badge { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+    .c-badge.ok { background: var(--teal-soft); color: #5eead4; border: 1px solid rgba(20, 184, 166, 0.35); }
+    .c-badge.warn { background: var(--amber-soft); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.35); }
+    .c-desc { font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; }
+    .c-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+
+    /* ==================== 素材与清单视图 ==================== */
+    .artifacts-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+    }
+    @media (max-width: 1024px) { .artifacts-grid { grid-template-columns: 1fr; } }
+    .art-msg-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      margin-bottom: 9px;
+      transition: border-color 0.15s ease;
+    }
+    .art-msg-card:hover { border-color: var(--border-strong); }
+    .art-msg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .art-badge-qq { background: var(--primary-soft); color: #60a5fa; border: 1px solid rgba(47, 129, 247, 0.3); padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .art-badge-wx { background: var(--teal-soft); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .art-badge-wecom { background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .art-badge-fs { background: rgba(167, 139, 250, 0.16); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.3); padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .art-msg-body {
+      font-size: 12.5px;
+      color: var(--text-main);
+      line-height: 1.55;
+      background: var(--bg-inset);
+      padding: 8px 11px;
+      border-radius: 6px;
+      border-left: 2px solid var(--primary);
+    }
+    .todo-preview-card {
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+      max-height: 440px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .out-file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 11px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .out-file-item:hover { border-color: var(--primary); background: rgba(47, 129, 247, 0.08); }
+
+    /* ==================== 弹窗与向导 ==================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 13, 0.78);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 85vh;
+      overflow-y: auto;
+      color: var(--text-main);
+      font-size: 13px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .wizard-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 13, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .wizard-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 940px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+      overflow: hidden;
+    }
+    .wizard-header {
+      padding: 15px 22px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .wizard-title-wrap h2 {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wizard-title-wrap p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .wizard-stepper {
+      display: flex;
+      background: var(--bg-inset);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 9px 18px;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .wz-step-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 7px;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .wz-step-item.active {
+      color: var(--text-main);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      font-weight: 600;
+    }
+    .wz-step-item.completed { color: #5eead4; }
+    .wz-step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .wz-step-item.active .wz-step-num { background: var(--primary); color: #fff; }
+    .wz-step-item.completed .wz-step-num { background: #0d9488; color: #fff; }
+    .wizard-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .wizard-footer {
+      padding: 13px 22px;
+      background: var(--bg-inset);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .wz-hero-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .wz-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (max-width: 768px) { .wz-grid-3 { grid-template-columns: 1fr; } }
+    .wz-card {
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+    .wz-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .wz-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+    .wz-check-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+    }
+    .wz-badge-ok { background: var(--teal-soft); color: #5eead4; border: 1px solid rgba(20, 184, 166, 0.3); padding: 2px 8px; border-radius: 99px; font-size: 11px; }
+    .wz-badge-warn { background: var(--amber-soft); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.3); padding: 2px 8px; border-radius: 99px; font-size: 11px; }
+    .wz-badge-gray { background: rgba(148, 163, 184, 0.14); color: var(--text-secondary); border: 1px solid var(--border-subtle); padding: 2px 8px; border-radius: 99px; font-size: 11px; }
+    .wz-demo-box {
+      background: var(--bg-inset);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-top: 12px;
+    }
+    .wz-demo-item {
+      border-left: 2px solid var(--cyan);
+      padding: 10px 12px;
+      background: var(--bg-surface);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin-bottom: 10px;
+    }
+    .wz-demo-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+    .wz-demo-raw { font-size: 12px; color: var(--text-main); margin-bottom: 6px; background: var(--bg-inset); padding: 6px 10px; border-radius: 6px; line-height: 1.45; }
+    .wz-demo-todo { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5eead4; font-weight: 600; }
+
+    /* ==================== Splash 与 Toast ==================== */
+    .splash-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-canvas);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.35s ease;
+    }
+    .splash-content { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .splash-logo { width: 56px; height: 56px; }
+    .splash-title { font-size: 17px; font-weight: 700; color: var(--text-main); letter-spacing: 0.3px; }
+    .splash-sub { font-size: 12px; color: var(--text-secondary); }
+    .splash-spinner {
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid rgba(47, 129, 247, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-top: 4px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toastContainer {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 10001;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast-item {
+      pointer-events: auto;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 240px;
+      max-width: 420px;
+      animation: toastSlideIn 0.22s ease-out;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .toast-ic { display: inline-flex; align-items: center; }
+    @keyframes toastSlideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast-item.success { border-color: rgba(20, 184, 166, 0.55); background: #0c2926; color: #99f6e4; }
+    .toast-item.warning { border-color: rgba(234, 179, 8, 0.55); background: #2d2308; color: #fef08a; }
+    .toast-item.error { border-color: rgba(244, 63, 94, 0.55); background: #311019; color: #fecdd3; }
+    .toast-item.info { border-color: rgba(47, 129, 247, 0.55); background: #0f213d; color: #bfdbfe; }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-inset);
+    }
+    .empty-icon { color: var(--text-muted); opacity: 0.85; display: inline-flex; }
+    .empty-title { font-size: 13.5px; font-weight: 600; color: var(--text-secondary); }
+    .empty-desc { font-size: 12px; color: var(--text-muted); max-width: 380px; line-height: 1.5; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.92em;
+      background: rgba(148, 163, 184, 0.12);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #cbd5e1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 首屏加载 Splash -->
+  <div id="appSplash" class="splash-screen">
+    <div class="splash-content">
+      <div class="splash-logo">
+        <svg viewBox="0 0 256 256" fill="none">
+          <rect x="12" y="12" width="232" height="232" rx="54" fill="#121820" stroke="#334155" stroke-width="6"/>
+          <path d="M58 84L72 98L98 70" stroke="#38BDF8" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="116" y="76" width="80" height="14" rx="7" fill="#E2E8F0"/>
+          <path d="M58 134L72 148L98 120" stroke="#2F81F7" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="116" y="126" width="44" height="14" rx="7" fill="#94A3B8"/>
+          <circle cx="72" cy="182" r="9" fill="#475569"/>
+          <rect x="98" y="175" width="48" height="14" rx="7" fill="#64748B"/>
+          <path d="M180 104L146 154H174L162 204L204 146H175L180 104Z" fill="#14B8A6"/>
+        </svg>
+      </div>
+      <div class="splash-title">待办自动汇总助手</div>
+      <div class="splash-sub">正在加载桌面工作台配置与流水线状态...</div>
+      <div class="splash-spinner"></div>
+    </div>
+  </div>
+
+  <!-- 全局 Toast 通知容器 -->
+  <div id="toastContainer"></div>
+
+  <div class="container">
+    <!-- 断网/重连横幅 -->
+    <div id="connErrorBanner" class="conn-down-banner">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span><strong>无法连接控制台后端服务 (127.0.0.1:8000)</strong>：请确认 Python server.py 是否仍在运行，系统正在自动重连...</span>
+    </div>
+
+    <!-- 一体化桌面工作台顶栏 -->
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 256 256" fill="none">
+            <path d="M48 80L64 96L92 66" stroke="#38BDF8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="112" y="72" width="96" height="16" rx="8" fill="#E2E8F0"/>
+            <path d="M48 134L64 150L92 120" stroke="#2F81F7" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="112" y="126" width="52" height="16" rx="8" fill="#94A3B8"/>
+            <path d="M186 106L150 158H180L166 210L212 150H181L186 106Z" fill="#14B8A6"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>
+            <span>待办自动汇总助手</span>
+            <span class="brand-ver">v1.5.4</span>
+          </h1>
+          <p>多端只读采集与智能待办提炼工作台</p>
+        </div>
+      </div>
+
+      <!-- 主视图分段导航 -->
+      <nav class="app-nav" aria-label="主视图导航">
+        <div class="nav-tab active" id="tabNav_dashboard" onclick="switchAppTab('dashboard')">
+          <span class="nav-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+          <span>监控大盘</span>
+        </div>
+        <div class="nav-tab" id="tabNav_artifacts" onclick="switchAppTab('artifacts')">
+          <span class="nav-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+          <span>待办素材与清单</span>
+          <span class="nav-badge" id="artifactCountBadge" style="display:none;">0</span>
+        </div>
+        <div class="nav-tab" id="tabNav_settings" onclick="switchAppTab('settings')">
+          <span class="nav-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span>系统设置</span>
+        </div>
+        <div class="nav-tab" id="tabNav_about" onclick="switchAppTab('about')">
+          <span class="nav-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+          <span>关于与指南</span>
+        </div>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="btn btn-ghost-accent btn-sm" onclick="openWizard(1)">
+          <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2 11 5"/></svg>
+          <span>新手向导</span>
+        </button>
+        <div id="statusPill" class="status-pill">
+          <span class="pulse-dot"></span>
+          <span id="statusText">初始化中...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 视图 1：监控大盘 -->
+    <div id="view_dashboard" class="app-view">
+      <!-- 运行指标行 -->
+      <div class="metrics-row" style="margin-bottom: 16px;">
+        <div class="metric-card m-time">
+          <span class="title">系统运行时长 <svg class="ic-xs" style="color:var(--primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <span class="value" id="elapsedVal">--:--:--</span>
+          <span class="sub">调度线程守护中</span>
+        </div>
+        <div class="metric-card m-cursor">
+          <span class="title">增量同步游标 <svg class="ic-xs" style="color:var(--cyan)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg></span>
+          <span class="value" id="cursorVal">--:--:--</span>
+          <span class="sub" id="cursorSub">容差 60s 夹紧保护</span>
+        </div>
+        <div class="metric-card m-mat">
+          <span class="title">本周期扫描素材 <svg class="ic-xs" style="color:var(--teal)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
+          <span class="value" id="matVal">0 条</span>
+          <span class="sub" id="matSub">落盘 work/待办素材.json</span>
+        </div>
+        <div class="metric-card m-prog">
+          <span class="title">流水线综合进度 <svg class="ic-xs" style="color:var(--purple)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+          <span class="value" id="progVal">0%</span>
+          <span class="sub" id="taskSub">0/6 阶段完成</span>
+        </div>
+      </div>
+
+      <!-- 全站告警条：失联 / 采集异常 -->
+      <div id="connBar" class="banner-warning" style="display:none;">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span><strong>与监控台失联</strong>：<span id="connMsg"></span>。下方显示的是最后一次成功获取的数据，可能已过期。</span>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="pollAll(true)">立即重试</button>
+      </div>
+      <div id="alarmBar" class="banner-warning" style="display:none;">
+        <svg class="ic" style="color:var(--rose)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+        <span><strong>存在采集异常</strong>：<code>output/</code> 目录下有 <span id="alarmCount">0</span> 份「异常说明」文件，本周期清单可能不完整。</span>
+      </div>
+
+      <!-- 核心分栏：流水线进度 + 终端日志 -->
+      <div class="main-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>
+              <svg class="ic" style="color:var(--primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>核心 6 大业务流水线</span>
+            </h2>
+            <span class="panel-sub">自动响应多平台配置</span>
+          </div>
+          <div class="task-list" id="taskList">
+            <div style="color:var(--text-muted); font-size:13px;">正在加载任务状态…</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>
+              <svg class="ic" style="color:var(--teal)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+              <span>实时运行控制台日志</span>
+            </h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary btn-sm" id="extractBtn" onclick="triggerExtract(this)">
+                <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                <span>立即采集</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="clearLogs()">
+                <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                <span>清屏</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="wakeWorkBuddy()">
+                <svg class="ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                <span>唤醒 WB</span>
+              </button>
+            </div>
+          </div>
+          <div class="terminal-window" id="terminalWindow">
+            <div style="color:var(--text-muted);">正在加载日志…</div>
+          </div>
+        </div>
+      </div>
+    </div> <!-- /view_dashboard -->
+
+    <!-- 视图 2：待办素材与清单 -->
+    <div id="view_artifacts" class="app-view" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);">待办素材与历史清单归档</h2>
+          <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">实时查看只读解密抽取的原始消息素材（<code>work/待办素材.json</code>）及 WorkBuddy 提炼生成的待办清单（<code>output/</code>）</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="runDiagnose(this)">采集自检</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadArtifactsData(true)">刷新素材</button>
+          <button class="btn btn-primary btn-sm" onclick="triggerExtract(this)">立即采集一轮</button>
+        </div>
+      </div>
+
+      <div id="artDiagStrip" style="display:none; margin-bottom: 12px; padding: 11px 14px; border-radius: 8px; background: rgba(47,129,247,0.08); border: 1px solid rgba(47,129,247,0.3); font-size: 12px; line-height: 1.7; color: #cbd5e1;"></div>
+
+      <div class="artifacts-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">待办素材消息流</span>
+              <span id="artMetaBadge" style="font-size: 11.5px; color: var(--cyan);">正在读取...</span>
+            </div>
+            <div style="display: flex; gap: 5px;" id="artFilterGroup">
+              <button class="btn-xs btn-xs-primary" onclick="filterArtifacts('ALL')">全部</button>
+              <button class="btn-xs btn-xs-secondary" onclick="filterArtifacts('qq')">QQ</button>
+              <button class="btn-xs btn-xs-secondary" onclick="filterArtifacts('wechat')">微信</button>
+              <button class="btn-xs btn-xs-secondary" onclick="filterArtifacts('wecom')">企微</button>
+            </div>
+          </div>
+          <div style="max-height: 540px; overflow-y: auto; padding-right: 4px;" id="artMsgList">
+            <div class="empty-state">
+              <span class="empty-icon"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+              <span class="empty-title">正在载入增量聊天素材...</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="panel">
+            <div class="panel-header">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">最新提炼待办清单</span>
+                <span id="latestTodoName" style="font-size: 11px; color: #5eead4; font-family: var(--font-mono);">--</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="copyTodoText()">复制清单</button>
+            </div>
+            <div id="todoPreviewBox" class="todo-preview-card">暂无已生成的待办清单。调度器每 3 小时将自动触发 WorkBuddy 提炼并生成清单。</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">output 产物文件归档</span>
+              <span style="font-size: 11px; color: var(--text-muted);">点击文件名查看内容</span>
+            </div>
+            <div style="max-height: 185px; overflow-y: auto;" id="outputFilesList">
+              <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">暂无文件</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图 3：系统设置 -->
+    <div id="view_settings" class="app-view" style="display: none;">
+      <section class="config-card">
+        <h2>
+          <svg class="ic" style="color:var(--primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>接入平台与配置模式选择 (动态装配中心)</span>
+        </h2>
+
+        <div id="configWarning" class="banner-warning" style="display: none;">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          <span><strong>尚未选择配置模式</strong>：当前处于安全待命状态，系统已暂停执行自动采集与推送。请在下方选择配置模式并勾选所需平台后点击“保存配置并应用”。</span>
+        </div>
+
+        <div class="guide-callout">
+          <strong>使用前必读与多平台接入三步指引：</strong><br>
+          <span style="color:#fde68a;"><strong>重要提醒：</strong>程序首次启动处于安全待命状态，<strong>必须先在本页【系统设置】中确认配置模式、勾选平台并点击「保存配置并应用」后才能正常使用</strong>。其中 QQ、个人微信与企业微信推送已完成实机验证；<strong>飞书与钉钉通道目前尚未经过实机测试（实验性）</strong>，如需使用请务必先在本页勾选、测试连通性并保存确认。</span><br>
+          1. <strong>选择模式</strong>：点击下方「模式 A / B / C」（推荐模式 C 自定义勾选已验证通道，模式 B 含未测试通道）；<br>
+          2. <strong>勾选平台</strong>：在下方平台列表中勾选需要启用的聊天通道；<br>
+          3. <strong>填写参数</strong>：在参数栏填入对应凭证（如飞书 App ID、微信密钥等），测试后点击「保存配置并应用」即可生效。
+        </div>
+
+        <div class="mode-options">
+          <div class="mode-box" id="modeBox_base" onclick="selectMode('base')">
+            <div class="m-title">模式 A：默认基础模式 (QQ + 企微)</div>
+            <div class="m-desc">只跑 QQ 本地解密 + 企微连接器，零外部 API、零公网依赖，最稳。</div>
+          </div>
+          <div class="mode-box" id="modeBox_all" onclick="selectMode('all')">
+            <div class="m-title">模式 B：全平台协同模式 (含未测试通道)</div>
+            <div class="m-desc">同时启用 QQ、微信、飞书、钉钉与企微。注意：飞书与钉钉尚未经过实机测试，启用前请逐项确认凭证与连通性。</div>
+          </div>
+          <div class="mode-box" id="modeBox_custom" onclick="selectMode('custom')">
+            <div class="m-title">模式 C：自定义接入模式 (推荐)</div>
+            <div class="m-desc">自由勾选启用平台，针对性配置参数。未被勾选的平台坚决不执行配置与采集，避免产生误报。</div>
+          </div>
+        </div>
+
+        <div class="platforms-grid">
+          <label class="platform-item checked" id="item_QQ">
+            <input type="checkbox" id="chk_QQ" checked onchange="onPlatformChange('QQ')">
+            <span class="p-label"><span class="plat-dot plat-qq">QQ</span><span>腾讯 QQ</span></span>
+            <span class="p-tag">本地解密</span>
+          </label>
+          <label class="platform-item" id="item_WeChat">
+            <input type="checkbox" id="chk_WeChat" onchange="onPlatformChange('WeChat')">
+            <span class="p-label"><span class="plat-dot plat-wx">微信</span><span>个人微信</span></span>
+            <span class="p-tag">明文镜像</span>
+          </label>
+          <label class="platform-item" id="item_Feishu">
+            <input type="checkbox" id="chk_Feishu" onchange="onPlatformChange('Feishu')">
+            <span class="p-label"><span class="plat-dot plat-fs">飞书</span><span>飞书 (Feishu)</span></span>
+            <span class="p-tag">Open API</span>
+          </label>
+          <label class="platform-item" id="item_DingTalk">
+            <input type="checkbox" id="chk_DingTalk" onchange="onPlatformChange('DingTalk')">
+            <span class="p-label"><span class="plat-dot plat-dt">钉钉</span><span>钉钉</span></span>
+            <span class="p-tag">收件箱</span>
+          </label>
+          <label class="platform-item" id="item_WeCom">
+            <input type="checkbox" id="chk_WeCom" checked onchange="onPlatformChange('WeCom')">
+            <span class="p-label"><span class="plat-dot plat-wc">企微</span><span>企业微信</span></span>
+            <span class="p-tag">推送出口</span>
+          </label>
+        </div>
+
+        <details open class="params-accordion" id="paramsDetails">
+          <summary>展开 / 收起各平台配置参数与接入凭证</summary>
+
+          <div id="allPlatformAssistantPanel" style="margin: 14px 0 18px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <div style="font-weight:700; color:var(--text-main); font-size:13.5px; display:flex; align-items:center; gap:8px;">
+                <span>多平台凭证检测与一键提取中心</span>
+                <span id="inspectTimeTag" style="font-size:11px; color:var(--text-muted); font-weight:normal;"></span>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="runInspectChannels(true)">重新检测环境</button>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px; line-height:1.5;">
+              系统自动探测各平台在当前电脑上的就绪状态。可点击各平台的「一键提取」或「测试连通性」快速配置凭证。
+            </div>
+            <div class="channel-cards-grid" id="channelCardsGrid"></div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group" id="grp_QQ_UIN">
+              <label>QQ 锁定账号 (QQ_TARGET_UIN)</label>
+              <input type="text" id="inp_QQ_UIN" placeholder="例如 284910283">
+            </div>
+            <div class="form-group" id="grp_QQ_KEY">
+              <label>QQ 数据库密钥 (QQ_DBKEY · 16位 ASCII)</label>
+              <input type="password" id="inp_QQ_KEY" placeholder="由 Admin_Init 自动抓取">
+              <div style="display:flex; gap:6px; margin-top:4px;"><button type="button" class="btn-xs btn-xs-secondary" onclick="triggerQQKeyGuide()">运行 QQ 取密钥向导</button></div>
+            </div>
+            <div class="form-group" id="grp_WX_KEY">
+              <label>微信数据库密钥 (WX_DBKEY · 64位十六进制)</label>
+              <input type="password" id="inp_WX_KEY" placeholder="点下方自动抓取，或粘贴 64 位密钥（保存前会校验）">
+              <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-xs btn-xs-primary" onclick="triggerWechatKeyGuide()">自动抓取微信密钥（4.x 通用）</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="triggerWechatHookGuide()">启动时抓取（Hook）</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="syncWechatKey()">从本地文件导入</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showWechatTutorial()">微信教程</button>
+              </div>
+            </div>
+            <div class="form-group" id="grp_FS_APP">
+              <label>飞书 App ID (FEISHU_APP_ID)</label>
+              <input type="text" id="inp_FS_APP" placeholder="cli_xxxxxxxx">
+            </div>
+            <div class="form-group" id="grp_FS_SEC">
+              <label>飞书 App Secret (FEISHU_APP_SECRET)</label>
+              <input type="password" id="inp_FS_SEC" placeholder="飞书开放平台应用密钥">
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="testFeishu()">测试飞书连通性</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showFeishuTutorial()">飞书接入指引</button>
+              </div>
+            </div>
+            <div class="form-group" id="grp_DT_APP">
+              <label>钉钉 Client ID / AppKey (DINGTALK_CLIENT_ID)</label>
+              <input type="text" id="inp_DT_APP" placeholder="dingxxxxxxxx">
+            </div>
+            <div class="form-group" id="grp_DT_SEC">
+              <label>钉钉 Client Secret (DINGTALK_CLIENT_SECRET)</label>
+              <input type="password" id="inp_DT_SEC" placeholder="钉钉应用凭证">
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="testDingTalk()">测试钉钉凭证</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showDingTalkTutorial()">钉钉接入指引</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showInboxImportModal('DingTalk')">写入收件箱消息</button>
+              </div>
+            </div>
+            <div class="form-group" id="grp_WECOM_HOOK">
+              <label>企微机器人 Webhook (WECOM_WEBHOOK_URL · 可选兜底)</label>
+              <input type="text" id="inp_WECOM_HOOK" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="testWecomWebhook()">测试 Webhook 推送</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showWecomTutorial()">企微接入说明</button>
+                <button type="button" class="btn-xs btn-xs-secondary" onclick="showInboxImportModal('WeCom')">录入收件箱消息</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="resetConfigChoice()">重置为未选择状态</button>
+          <button class="btn btn-success" onclick="saveConfiguration()">保存配置并应用</button>
+        </div>
+      </section>
+
+      <section class="config-card" style="margin-top: 14px;">
+        <h2>自动化采集节奏与常驻调度计划</h2>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">设置后台常驻调度器（<code>tools/scheduler.py</code>）的增量抓取频率与时间跨度，修改后实时热加载生效</p>
+
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 0;">
+          <div class="form-group">
+            <label>增量采集周期 (分钟)</label>
+            <input type="number" id="settingIntervalMinutes" value="180" min="30" max="1440">
+            <span style="font-size: 11px; color: var(--text-muted);">推荐 180 分钟（每 3 小时自动采集一次，与 WorkBuddy 提炼周期对齐）</span>
+          </div>
+          <div class="form-group">
+            <label>单次回看时间跨度 (小时)</label>
+            <input type="number" id="settingLookbackHours" value="4" min="1" max="48">
+            <span style="font-size: 11px; color: var(--text-muted);">推荐 4 小时（平滑重叠覆盖，保证断网或临时重启不丢漏消息）</span>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top: 14px;">
+          <button class="btn btn-primary" onclick="saveScheduleSettings()">保存调度计划并热应用</button>
+        </div>
+      </section>
+
+      <section class="config-card" style="margin-top: 14px; border-color: rgba(244, 63, 94, 0.35); background: rgba(244, 63, 94, 0.04);">
+        <h2 style="color: #fda4af;">软件彻底卸载与痕迹完全清理</h2>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6;">
+          本功能将为您<strong>100% 深度彻底清理全部系统痕迹</strong>：注销开机自启动项、删除桌面应用图标与快捷方式、彻底还原 QQ 自动更新保护、销毁本地解密明文镜像与浏览器缓存、清除配置与密钥。清理后系统恢复如初，无任何残留后台。
+        </p>
+        <button class="btn btn-danger" onclick="confirmUninstallApp()">一键彻底卸载并清理全部数据</button>
+      </section>
+
+      <section class="config-card" style="margin-top: 14px;">
+        <h2>系统维护与快捷辅助</h2>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px;">
+          <button class="btn btn-primary" onclick="createDesktopShortcut()">创建桌面快捷方式 (带应用图标)</button>
+          <button class="btn btn-secondary" onclick="openWizard(1)">重新运行首次启动新手向导</button>
+          <button class="btn btn-secondary" onclick="clearLogs()">清空控制台实时日志</button>
+          <button class="btn btn-secondary" onclick="fetchConfig(true); showToast('配置已重新加载', 'info');">重新加载环境配置</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 视图 4：关于与指南 -->
+    <div id="view_about" class="app-view" style="display: none;">
+      <div class="wz-hero-card">
+        <h3 style="font-size: 16px; color: var(--text-main); margin-bottom: 6px;">待办自动汇总助手 · 系统档案</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+          版本：<strong>v1.5.4 (完整 App 正式版)</strong> · 构建通道：<code>stable</code><br>
+          开源项目：<strong>待办自动汇总助手 (Todo Summary Assistant)</strong><br>
+          技术架构：纯原生 Python 3.10~3.13 零外部重型依赖，SQLCipher4 本地只读解密 + Windows 内存免重启扫描 + 常驻多线程精准调度器
+        </p>
+      </div>
+
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">核心工程规范与原则承诺</div>
+      <div class="wz-grid-3" style="margin-bottom: 16px;">
+        <div class="wz-card">
+          <div class="wz-card-title">
+            <svg class="ic" style="color:var(--teal)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>绝对安全只读</span>
+          </div>
+          <div class="wz-card-desc">仅在本地工作区拷贝聊天库临时副本再只读读取，绝不往原库写入任何字节，绝不打扰正常聊天，绝不向公网泄露原始聊天记录。</div>
+        </div>
+        <div class="wz-card">
+          <div class="wz-card-title">
+            <svg class="ic" style="color:var(--primary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>真实来源可溯</span>
+          </div>
+          <div class="wz-card-desc">清单里每一条待办必须带原始来源（平台、会话名、发送人、发送时间、消息编号）。AI 找不回真实来源的内容坚决不进清单。</div>
+        </div>
+        <div class="wz-card">
+          <div class="wz-card-title">
+            <svg class="ic" style="color:var(--amber)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <span>故障主动告警</span>
+          </div>
+          <div class="wz-card-desc">读不到数据或通道异常时主动落盘异常诊断单并在清单首行报警，安全冻结增量游标，修复后原位补齐，绝不冒充正常。</div>
+        </div>
+      </div>
+
+      <div class="wz-card" style="margin-bottom: 14px;">
+        <div class="wz-card-title"><span>使用者极简 30 秒指南</span></div>
+        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.85; margin-top: 6px;">
+          1. <strong>平时完全不用管</strong>：安装好后开机常驻后台，每 3 小时自动采集增量消息，WorkBuddy 自动提炼推送到企业微信。<br>
+          2. <strong>想立刻整理一次</strong>：双击 <code>Start.bat</code> 或桌面图标打开本控制台，点击「立即采集」即可，无需任何代码操作。<br>
+          3. <strong>电脑 QQ 或微信退出了</strong>：双击重新登录一下即可，下次采集将自动无缝衔接。
+        </div>
+      </div>
+
+      <div class="wz-card">
+        <div class="wz-card-title"><span>常见排查与文件位置指引</span></div>
+        <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.85; margin-top: 6px;">
+          · 待办素材生成文件：<code>work\待办素材.json</code><br>
+          · 提炼后待办清单：<code>output\todo-*.md</code><br>
+          · 异常说明排查文件：<code>output\异常说明-*.txt</code><br>
+          · 调度日志：<code>output\scheduler.log</code> · 后台日志：<code>output\background.log</code><br>
+          · 微信 4.x 密钥抓取：在设置页点击「自动抓取微信密钥」或在向导中一键抓取（2~3秒，不用重启微信）。
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <script>
+
+    // ==================== 统一线性 SVG 图标系统 ====================
+    const UI_ICONS = {
+      ok: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+      warn: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+      err: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+      info: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+      key: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
+      bolt: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+      book: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+      search: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+      inbox: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+      bell: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+      doc: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      todo: '<svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+      stetho: '<svg class="ic ic-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>',
+      qq: '<span class="plat-dot plat-qq">QQ</span>',
+      wx: '<span class="plat-dot plat-wx">微信</span>',
+      fs: '<span class="plat-dot plat-fs">飞书</span>',
+      wc: '<span class="plat-dot plat-wc">企微</span>',
+      dt: '<span class="plat-dot plat-dt">钉钉</span>'
+    };
+
+    let currentConfigMode = "";
+    let enabledPlatforms = ["QQ", "WeCom"];
+    const requestStates = {
+      status: { busy: false, controller: null, generation: 0 },
+      tasks: { busy: false, controller: null, generation: 0 },
+      logs: { busy: false, controller: null, generation: 0 },
+      config: { busy: false, controller: null, generation: 0 }
+    };
+    const endpointHealth = {};
+    let extractRequested = false;
+
+    const REQ_TIMEOUT_MS = 15000;
+    let connDown = false;
+    let isAppUninstalled = false;
+    let pollTimers = [];
+
+    function beginRequest(name, force = false) {
+      const state = requestStates[name];
+      if (state.busy && !force) return null;
+      if (state.controller) state.controller.abort();
+      state.controller = new AbortController();
+      state.busy = true;
+      state.generation += 1;
+      return { name, controller: state.controller, generation: state.generation };
+    }
+
+    function isLatestRequest(ticket) {
+      const state = requestStates[ticket.name];
+      return state.generation === ticket.generation && state.controller === ticket.controller;
+    }
+
+    function endRequest(ticket) {
+      if (!isLatestRequest(ticket)) return;
+      const state = requestStates[ticket.name];
+      state.busy = false;
+      state.controller = null;
+    }
+
+   
+    // 统一请求层：超时、错误归一化、失联提示
+    //
+    // 旧代码直接 fetch() 且只有 console.error —— 监控台进程被关掉后，
+    // 页面会一直显示最后一次的数据、继续按 3 秒轮询、界面毫无变化，
+    // 用户以为"系统在跑，只是没有新待办"。这里必须显式告诉人"失联了"。
+   
+    function setConnState(ok, msg, endpoint = "status") {
+      if (isAppUninstalled) return;
+      endpointHealth[endpoint] = { ok, msg: msg || "请求失败" };
+      const failures = Object.entries(endpointHealth).filter(([, state]) => !state.ok);
+      const bar = document.getElementById("connBar");
+      connDown = failures.length > 0;
+      if (!connDown) {
+        bar.style.display = "none";
+        return;
+      }
+      document.getElementById("connMsg").innerText = failures.map(([name, state]) => `${name}: ${state.msg}`).join("；");
+      bar.style.display = "flex";
+    }
+
+    async function api(path, options = {}) {
+      const { controller: providedController, timeout = REQ_TIMEOUT_MS, ...fetchOptions } = options;
+      const ctrl = providedController || new AbortController();
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeout);
+      const method = (fetchOptions.method || "GET").toUpperCase();
+      if (method !== "GET") {
+        fetchOptions.headers = { "Content-Type": "application/json", ...(fetchOptions.headers || {}) };
+        if (fetchOptions.body === undefined) fetchOptions.body = "{}";
+      }
+      try {
+        const res = await fetch(path, {
+          ...fetchOptions,
+          signal: ctrl.signal,
+          cache: "no-store",
+        });
+        const text = await res.text();
+        let data = {};
+        if (text) {
+          try { data = JSON.parse(text); } catch (e) { throw new Error(`响应不是合法 JSON（HTTP ${res.status}）`); }
+        }
+        if (!res.ok) {
+          const error = new Error(data.message || `请求失败（HTTP ${res.status}）`);
+          error.status = res.status;
+          error.data = data;
+          throw error;
+        }
+        return data;
+      } catch (e) {
+        if (e.name === "AbortError") {
+          if (!timedOut) throw e;
+          // 超时不等于服务死了：长任务（扫描内存 / 解密镜像）可能仍在后台跑。
+          // 旧文案直接说"监控台可能已卡住"，把人引向错误的排查方向。
+          throw new Error(`请求超时（${Math.round(timeout / 1000)}s）；任务可能仍在后台执行，请稍后看状态，不要反复点击`);
+        }
+        if (e.message && e.message.indexOf("Failed to fetch") >= 0) throw new Error("无法连接监控台（服务可能已退出）");
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchStatus(force = false) {
+      const ticket = beginRequest("status", force);
+      if (!ticket) return;
+      try {
+        const data = await api("/api/status", { controller: ticket.controller });
+        if (!isLatestRequest(ticket)) return;
+
+        // 状态徽章
+        const pill = document.getElementById("statusPill");
+        const statusText = document.getElementById("statusText");
+        pill.className = "status-pill";
+
+        if (!data.is_configured) {
+          pill.classList.add("waiting");
+          statusText.innerText = "⚪ 等待确认配置模式";
+          document.getElementById("configWarning").style.display = "flex";
+        } else if (data.status === "PAUSED") {
+          pill.classList.add("paused");
+          statusText.innerText = "⏸️ 调度器已挂起";
+          document.getElementById("configWarning").style.display = "none";
+        } else {
+          statusText.innerText = "🟢 正在运行中";
+          document.getElementById("configWarning").style.display = "none";
+        }
+
+        document.getElementById("elapsedVal").innerText = data.elapsed_time;
+        document.getElementById("cursorVal").innerText = data.cursor;
+        document.getElementById("matVal").innerText = `${data.material_count} 条`;
+        document.getElementById("progVal").innerText = `${data.total_progress}%`;
+        document.getElementById("taskSub").innerText = `${data.completed_tasks}/6 阶段完成`;
+        if (extractRequested && !data.lock_active) {
+          extractRequested = false;
+          setExtractButton(false);
+        }
+
+        // 素材状态如实显示：FAIL / PARTIAL / 过期 都要看得出来
+        const staleWarn = document.getElementById("matSub");
+        if (data.material_status === "FAIL") {
+          staleWarn.innerText = "本轮采集失败，素材为空";
+        } else if (data.material_status === "PARTIAL") {
+          staleWarn.innerText = "部分通道未采到（详见日志）";
+        } else if (data.material_age_hours !== null && data.material_age_hours !== undefined) {
+          staleWarn.innerText = `素材 ${data.material_age_hours} 小时前生成`;
+        } else {
+          staleWarn.innerText = "尚未生成素材";
+        }
+        staleWarn.style.color = (data.material_status === "FAIL" || (data.material_age_hours || 0) > 2) ? "#fb7185" : "";
+
+        // 同步渲染多渠道真实探测状态标签
+        if (data.channels && typeof data.channels === "object") {
+          const chMap = {
+            qq: "item_QQ",
+            wechat: "item_WeChat",
+            feishu: "item_Feishu",
+            dingtalk: "item_DingTalk",
+            wecom: "item_WeCom"
+          };
+          for (const [chKey, tagId] of Object.entries(chMap)) {
+            const itemEl = document.getElementById(tagId);
+            if (itemEl && data.channels[chKey]) {
+              const tagEl = itemEl.querySelector(".p-tag");
+              if (tagEl) {
+                tagEl.innerText = data.channels[chKey];
+              }
+            }
+          }
+        }
+
+        // 异常说明文件数量 > 0 时顶部红条常驻
+        const alarmBar = document.getElementById("alarmBar");
+        if (data.alarm_count > 0) {
+          document.getElementById("alarmCount").innerText = data.alarm_count;
+          alarmBar.style.display = "flex";
+        } else {
+          alarmBar.style.display = "none";
+        }
+
+        setConnState(true, "", "status");
+      } catch (e) {
+        if (isLatestRequest(ticket)) setConnState(false, e.message, "status");
+      } finally {
+        endRequest(ticket);
+      }
+    }
+
+    async function fetchConfig(force = false) {
+      const ticket = beginRequest("config", force);
+      if (!ticket) return;
+      try {
+        const data = await api("/api/config", { controller: ticket.controller });
+        if (!isLatestRequest(ticket)) return;
+        currentConfigMode = data.config_mode || "";
+        enabledPlatforms = data.enabled_platforms || ["QQ", "WeCom"];
+
+        updateModeUI();
+        updateCheckboxUI(); runInspectChannels();
+
+        // 填充参数
+        const p = data.params || {};
+        const plain = {
+          QQ_TARGET_UIN: "inp_QQ_UIN",
+          FEISHU_APP_ID: "inp_FS_APP",
+          DINGTALK_CLIENT_ID: "inp_DT_APP",
+          WECOM_WEBHOOK_URL: "inp_WECOM_HOOK",
+        };
+        for (const [key, id] of Object.entries(plain)) {
+          const el = document.getElementById(id);
+          if (el && p[key]) el.value = p[key];
+        }
+
+        // 密钥类字段不再回填明文（后端已脱敏，回填只会把 "AbC****890" 当成真密钥再存一次）。
+        // 留空 = 不修改；后端 save_env_dict 对空值敏感项本来就是跳过。
+        const secrets = {
+          QQ_DBKEY: "inp_QQ_KEY",
+          WX_DBKEY: "inp_WX_KEY",
+          FEISHU_APP_SECRET: "inp_FS_SEC",
+          DINGTALK_CLIENT_SECRET: "inp_DT_SEC",
+        };
+        for (const [key, id] of Object.entries(secrets)) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.value = "";
+          el.placeholder = p[key + "_set"] ? `已配置（${p[key] || ""}），留空表示不修改` : "未配置";
+        }
+        setConnState(true, "", "config");
+      } catch (e) {
+        if (isLatestRequest(ticket)) setConnState(false, e.message, "config");
+      } finally {
+        endRequest(ticket);
+      }
+    }
+
+    function selectMode(mode) {
+      currentConfigMode = mode;
+      if (mode === "base") {
+        enabledPlatforms = ["QQ", "WeCom"];
+      } else if (mode === "all") {
+        enabledPlatforms = ["QQ", "WeChat", "Feishu", "DingTalk", "WeCom"];
+        const det = document.getElementById("paramsDetails");
+        if (det) det.open = true;
+        runInspectChannels();
+      }
+      updateModeUI();
+      updateCheckboxUI(); runInspectChannels();
+    }
+
+    function onPlatformChange(platform) {
+      currentConfigMode = "custom";
+      const chk = document.getElementById(`chk_${platform}`);
+      if (chk.checked) {
+        if (!enabledPlatforms.includes(platform)) enabledPlatforms.push(platform);
+      } else {
+        enabledPlatforms = enabledPlatforms.filter(x => x !== platform);
+      }
+      updateModeUI();
+      updateCheckboxUI(); runInspectChannels();
+    }
+
+    function updateModeUI() {
+      ["base", "all", "custom"].forEach(m => {
+        const box = document.getElementById(`modeBox_${m}`);
+        if (box) {
+          if (currentConfigMode === m) box.classList.add("active");
+          else box.classList.remove("active");
+        }
+      });
+      document.getElementById("configWarning").style.display = currentConfigMode ? "none" : "flex";
+    }
+
+    function updateCheckboxUI() {
+      ["QQ", "WeChat", "Feishu", "DingTalk", "WeCom"].forEach(p => {
+        const chk = document.getElementById(`chk_${p}`);
+        const item = document.getElementById(`item_${p}`);
+        const isChecked = enabledPlatforms.includes(p);
+        if (chk) chk.checked = isChecked;
+        if (item) {
+          if (isChecked) item.classList.add("checked");
+          else item.classList.remove("checked");
+        }
+      });
+    }
+
+    async function saveConfiguration() {
+      if (!currentConfigMode) {
+        alert("请先点击选择一种【配置模式】（如基础模式、全平台模式或自定义模式）！");
+        return;
+      }
+      const saveBtn = document.querySelector(".btn-success");
+      if (saveBtn) saveBtn.disabled = true;
+
+      const params = {};
+      const uin = document.getElementById("inp_QQ_UIN").value.trim();
+      if (uin) params.QQ_TARGET_UIN = uin;
+      const qqKey = document.getElementById("inp_QQ_KEY").value.trim();
+      if (qqKey) params.QQ_DBKEY = qqKey;
+      const wxKey = document.getElementById("inp_WX_KEY").value.trim();
+      if (wxKey) params.WX_DBKEY = wxKey;
+      const fsApp = document.getElementById("inp_FS_APP").value.trim();
+      if (fsApp) params.FEISHU_APP_ID = fsApp;
+      const fsSec = document.getElementById("inp_FS_SEC").value.trim();
+      if (fsSec) params.FEISHU_APP_SECRET = fsSec;
+      const dtApp = document.getElementById("inp_DT_APP").value.trim();
+      if (dtApp) params.DINGTALK_CLIENT_ID = dtApp;
+      const dtSec = document.getElementById("inp_DT_SEC").value.trim();
+      if (dtSec) params.DINGTALK_CLIENT_SECRET = dtSec;
+      const hook = document.getElementById("inp_WECOM_HOOK").value.trim();
+      if (hook) params.WECOM_WEBHOOK_URL = hook;
+
+      try {
+        await api("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: json_stringify({
+            config_mode: currentConfigMode,
+            enabled_platforms: enabledPlatforms,
+            params: params
+          })
+        });
+        if (enabledPlatforms.includes("WeChat") && !wxKey) {
+          alert("✅ 配置已保存！\n\n检测到您激活了【微信】平台且尚未配置密钥，系统已自动呼出微信密钥提取器，正在后台扫描微信进程内存捕获密钥，微信无需关闭，请保持微信登录即可！");
+          triggerWechatKeyGuide(true);
+        } else {
+          alert("✅ 配置已成功保存并即时生效！");
+        }
+        pollAll(true);
+      } catch (e) {
+        alert("保存配置失败: " + e.message);
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    }
+
+    async function resetConfigChoice() {
+      if (confirm("确定重置为未选择模式吗？重置后系统将暂停后台自动采集。")) {
+        currentConfigMode = "";
+        enabledPlatforms = ["QQ", "WeCom"];
+        updateModeUI();
+        updateCheckboxUI(); runInspectChannels();
+        try {
+          await api("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: json_stringify({ config_mode: "", enabled_platforms: [] })
+          });
+          pollAll(true);
+        } catch (e) {
+          alert("重置失败: " + e.message);
+        }
+      }
+    }
+
+    async function fetchTasks(force = false) {
+      const ticket = beginRequest("tasks", force);
+      if (!ticket) return;
+      try {
+        const data = await api("/api/tasks", { controller: ticket.controller });
+        if (!isLatestRequest(ticket)) return;
+        const list = document.getElementById("taskList");
+        const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+        list.innerHTML = tasks.length ? tasks.map(t => `
+          <div class="task-item">
+            <div class="task-top">
+              <span class="task-id">${escapeHtml(String(t.id || ''))} · ${escapeHtml(String(t.module || ''))}</span>
+              <span class="task-tag tag-${escapeHtml(String(t.status || ''))}">${escapeHtml(String(t.status || ''))}</span>
+            </div>
+            <div class="task-name">${escapeHtml(String(t.name || ''))}</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${Math.min(100, Math.max(0, Number(t.progress) || 0))}%"></div>
+            </div>
+          </div>
+        `).join("") : '<div style="color:var(--text-muted);">暂无任务数据</div>';
+        setConnState(true, "", "tasks");
+      } catch (e) {
+        if (isLatestRequest(ticket)) setConnState(false, e.message, "tasks");
+      } finally {
+        endRequest(ticket);
+      }
+    }
+
+    async function fetchLogs(force = false) {
+      const ticket = beginRequest("logs", force);
+      if (!ticket) return;
+      try {
+        const data = await api("/api/logs", { controller: ticket.controller });
+        if (!isLatestRequest(ticket)) return;
+        const win = document.getElementById("terminalWindow");
+        const isScrolledToBottom = win.scrollHeight - win.clientHeight <= win.scrollTop + 50;
+        const logs = Array.isArray(data.logs) ? data.logs : [];
+
+        win.innerHTML = logs.length ? logs.map(l => `
+          <div class="log-line">
+            <span class="log-time">[${escapeHtml(String(l.time || '--:--:--'))}]</span>
+            <span class="log-level lvl-${escapeHtml(String(l.level || 'INFO'))}">${escapeHtml(String(l.level || 'INFO'))}</span>
+            <span class="log-msg">${escapeHtml(l.msg)}</span>
+          </div>
+        `).join("") : '<div style="color:var(--text-muted);">暂无日志</div>';
+
+        if (isScrolledToBottom) {
+          win.scrollTop = win.scrollHeight;
+        }
+        setConnState(true, "", "logs");
+      } catch (e) {
+        if (isLatestRequest(ticket)) setConnState(false, e.message, "logs");
+      } finally {
+        endRequest(ticket);
+      }
+    }
+
+    function setExtractButton(active) {
+      const btn = document.getElementById("extractBtn");
+      if (!btn) return;
+      btn.disabled = active;
+      btn.innerText = active ? "⏳ 采集中…" : "⚡ 立即采集";
+    }
+
+    async function triggerExtract(btn) {
+      if (extractRequested) return;
+
+      const unconfigured = [];
+      const qqKeyInp = document.getElementById("inp_QQ_KEY");
+      if (enabledPlatforms.includes("QQ") && qqKeyInp && !qqKeyInp.placeholder.includes("已配置") && !qqKeyInp.value.trim()) {
+        unconfigured.push("QQ (缺密钥)");
+      }
+      const wxKeyInp = document.getElementById("inp_WX_KEY");
+      if (enabledPlatforms.includes("WeChat") && wxKeyInp && !wxKeyInp.placeholder.includes("已配置") && !wxKeyInp.value.trim()) {
+        unconfigured.push("个人微信 (缺 WX_DBKEY)");
+      }
+      const fsAppInp = document.getElementById("inp_FS_APP");
+      const fsSecInp = document.getElementById("inp_FS_SEC");
+      if (enabledPlatforms.includes("Feishu") && fsAppInp && fsSecInp && (!fsAppInp.value.trim() || (!fsSecInp.placeholder.includes("已配置") && !fsSecInp.value.trim()))) {
+        unconfigured.push("飞书 (缺凭证)");
+      }
+
+      let useSafeMode = false;
+      if (unconfigured.length > 0) {
+        if (unconfigured.length === enabledPlatforms.length) {
+          alert(`⚠️ 当前勾选的平台均未配置凭证（${unconfigured.join('、')}）。\n\n请先点击下方【🔑 一键提取】或填写凭证，避免全部采集失败！`);
+          document.getElementById("paramsDetails").open = true;
+          return;
+        }
+        const confirmSafe = confirm(`⚠️ 检测到部分平台未配置凭证：\n${unconfigured.map(x => ' • ' + x).join('\n')}\n\n是否启用【安全采集模式】？\n\n• 点击【确定】：系统将跳过未配置平台，正常采集已就绪的平台（如 QQ），不会导致整轮失败；\n• 点击【取消】：返回完善密钥配置。`);
+        if (!confirmSafe) {
+          document.getElementById("paramsDetails").open = true;
+          return;
+        }
+        useSafeMode = true;
+      }
+
+      extractRequested = true;
+      setExtractButton(true);
+      try {
+        await api("/api/extract", {
+          method: "POST",
+          timeout: 15000,
+          body: json_stringify({ safe_mode: useSafeMode })
+        });
+      } catch (e) {
+        if (e.status === 409) {
+          alert("已有采集任务正在运行，将等待其完成，不会重复启动。");
+        } else {
+          extractRequested = false;
+          setExtractButton(false);
+          alert("采集触发失败: " + e.message);
+        }
+      } finally {
+        pollAll(true);
+      }
+    }
+
+    async function clearLogs() {
+      try {
+        await api("/api/logs/clear", { method: "POST" });
+        fetchLogs();
+      } catch (e) {
+        alert("清屏失败: " + e.message);
+      }
+    }
+
+    async function wakeWorkBuddy() {
+      try {
+        await api("/api/workbuddy", { method: "POST" });
+      } catch (e) {
+        showToast("唤醒失败: " + e.message, "error");
+        return;
+      }
+      fetchLogs();
+    }
+
+    
+   
+    // 多平台环境检测与凭证助手
+   
+    let channelInspectData = null;
+
+    async function runInspectChannels(manual = false) {
+      const markFailed = (msg) => {
+        // 旧实现 catch 里只 console.error，界面上三个"检测中..."永远不动了，
+        // 用户以为卡死。这里把失败原因直接写进卡片，并允许一键重试。
+        ["wzInspect_QQ", "wzInspect_WeChat"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.innerText.indexOf("检测中") >= 0) {
+            el.innerText = "检测失败 · 请点「重新检测环境」";
+            el.style.color = "#fb7185";
+          }
+        });
+        if (manual) showToast("环境检测失败: " + msg, "error", 6000);
+      };
+      try {
+        // 体检要扫多盘目录，给足 25 秒；正常有 8 秒服务端缓存，一般 <1 秒返回
+        const res = await api("/api/channels/inspect" + (manual ? "?force=1" : ""), { timeout: 25000 });
+        if (res.status === "success" && res.data) {
+          channelInspectData = res.data;
+          renderChannelCards(res.data);
+          renderWizardInspect(res.data);
+          const timeTag = document.getElementById("inspectTimeTag");
+          if (timeTag) timeTag.innerText = "已更新: " + new Date().toLocaleTimeString();
+          if (manual) showToast("多平台环境与密钥状态已刷新", "success", 3000);
+        } else {
+          markFailed((res && res.message) || "返回数据为空");
+        }
+      } catch (e) {
+        markFailed(e.message || String(e));
+      }
+    }
+
+    // 向导页顶部的三行状态（旧版写死"检测中..."，后端一慢就永久卡住）
+    function renderWizardInspect(data) {
+      const qq = (data && data.qq) || {};
+      const wx = (data && data.wechat) || {};
+      const qqEl = document.getElementById("wzInspect_QQ");
+      if (qqEl) {
+        qqEl.style.color = qq.key_configured && qq.schema_ready ? "#4ade80" : "#fde68a";
+        qqEl.innerText = qq.key_configured
+          ? (qq.schema_ready ? "✔ 密钥+表结构就绪" : "密钥已配置 · 待固化表结构")
+          : (qq.db_exists ? "待取密钥" : "未定位数据库");
+      }
+      const wxEl = document.getElementById("wzInspect_WeChat");
+      if (wxEl) {
+        wxEl.style.color = wx.key_configured ? "#4ade80" : "#fde68a";
+        wxEl.innerText = wx.key_configured
+          ? (wx.mirror_ready ? "✔ 明文镜像就绪" : "密钥已配置 · 待首次解密")
+          : (wx.data_dir_found ? "待取密钥" : "未检测到微信数据目录");
+      }
+    }
+
+    function renderChannelCards(data) {
+      const grid = document.getElementById("channelCardsGrid");
+      if (!grid || !data) return;
+
+      const qq = data.qq || {};
+      const wx = data.wechat || {};
+      const fs = data.feishu || {};
+      const dt = data.dingtalk || {};
+      const wc = data.wecom || {};
+
+      grid.innerHTML = `
+        <div class="channel-guide-card ${qq.key_configured && qq.schema_ready ? 'ready' : 'waiting'}">
+          <div class="c-header">
+            <span class="c-title-row">${UI_ICONS.qq}<span>腾讯 QQ</span></span>
+            <span class="c-badge ${qq.key_configured && qq.schema_ready ? 'ok' : 'warn'}">
+              ${qq.key_configured ? (qq.schema_ready ? '密钥+表结构就绪' : '待固化表结构') : '待填密钥'}
+            </span>
+          </div>
+          <div class="c-desc">
+            锁定账号: <strong>${escapeHtml(qq.uin)}</strong><br>
+            数据库: ${qq.db_exists ? '<span style="color:#4ade80">已定位 nt_msg.db</span>' : '<span style="color:#fb7185">未定位数据库</span>'}<br>
+            表结构: ${qq.schema_ready ? '<span style="color:#4ade80">config/schema.json 已固化</span>' : '<span style="color:#fde68a">未固化（缺它采不出任何消息）</span>'}<br>
+            说明: 本地只读解密，无需外网凭证
+          </div>
+          <div class="c-actions">
+            <button class="btn-xs btn-xs-secondary" onclick="triggerQQKeyGuide()">${UI_ICONS.key} 运行QQ取密向导</button>
+          </div>
+        </div>
+
+        <div class="channel-guide-card ${wx.key_configured && wx.mirror_ready ? 'ready' : 'waiting'}">
+          <div class="c-header">
+            <span class="c-title-row">${UI_ICONS.wx}<span>个人微信</span></span>
+            <span class="c-badge ${wx.key_configured && wx.mirror_ready ? 'ok' : (wx.key_configured ? 'warn' : 'warn')}">
+              ${wx.key_configured && wx.mirror_ready ? '镜像就绪' : (wx.key_configured ? '待首次解密' : (wx.key_file_detected ? '有密钥文件' : '待填密钥'))}
+            </span>
+          </div>
+          <div class="c-desc">
+            微信数据目录: ${wx.data_dir_found ? '<span style="color:#4ade80">已找到 4.x 存储</span>' : '<span style="color:#fb7185">未找到 (需已登录)</span>'}<br>
+            明文镜像: ${wx.mirror_ready ? `<span style="color:#4ade80">已就绪 (${wx.mirror_db_count} 个分库)</span>` : '<span style="color:#fde68a">未生成明文镜像</span>'}<br>
+            组件状态: ${wx.vendor_found ? 'vendor 就绪' : '<span style="color:#fb7185">缺 vendor/wechat-key</span>'}
+          </div>
+          <div class="c-actions">
+            <button class="btn-xs btn-xs-primary" onclick="triggerWechatKeyGuide()">${UI_ICONS.key} 一键提取密钥</button>
+            <button class="btn-xs btn-xs-secondary" onclick="triggerWechatHookGuide()">${UI_ICONS.bolt} 启动时抓取（Hook）</button>
+            <button class="btn-xs btn-xs-secondary" onclick="syncWechatKey()">${UI_ICONS.inbox} 同步密钥</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showWechatTutorial()">${UI_ICONS.book} 教程</button>
+          </div>
+        </div>
+
+        <div class="channel-guide-card ${fs.app_id_configured && fs.app_secret_configured ? 'ready' : 'waiting'}">
+          <div class="c-header">
+            <span class="c-title-row">${UI_ICONS.fs}<span>飞书 (Feishu)</span></span>
+            <span class="c-badge warn">
+              ${fs.app_id_configured && fs.app_secret_configured ? '凭证已填 (未测试通道)' : '未经过测试 · 待配置'}
+            </span>
+          </div>
+          <div class="c-desc">
+            接入机制: 飞书开放平台 Open API<br>
+            测试状态: <span style="color:#fbbf24">尚未经过实机测试（实验性支持）</span><br>
+            使用前提: 须在<strong>系统设置</strong>勾选、加群并测试保存后方可使用
+          </div>
+          <div class="c-actions">
+            <button class="btn-xs btn-xs-secondary" onclick="testFeishu()">${UI_ICONS.search} 测试连通性</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showFeishuTutorial()">${UI_ICONS.book} 配置指引</button>
+          </div>
+        </div>
+
+        <div class="channel-guide-card ${wc.inbox_count > 0 || wc.webhook_configured ? 'ready' : 'waiting'}">
+          <div class="c-header">
+            <span class="c-title-row">${UI_ICONS.wc}<span>企业微信</span></span>
+            <span class="c-badge ${wc.inbox_count > 0 ? 'ok' : 'warn'}">
+              ${wc.inbox_count > 0 ? `收件箱 ${wc.inbox_count} 条` : '收件箱为空'}
+            </span>
+          </div>
+          <div class="c-desc">
+            核心角色: <strong>待办清单推送分发</strong>（通过 Webhook 接收待办）<br>
+            读取限制: 企微收信需开通企业付费「会话内容存档」<br>
+            推送状态: ${wc.webhook_configured ? '<span style="color:#4ade80">已配 Webhook (可接收待办)</span>' : '<span style="color:#fde68a">未填 Webhook (点击下方配指引)</span>'}
+          </div>
+          <div class="c-actions">
+            <button class="btn-xs btn-xs-secondary" onclick="testWecomWebhook()">${UI_ICONS.bell} 测试Webhook</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showInboxImportModal('WeCom')">${UI_ICONS.inbox} 录入消息</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showWecomTutorial()">${UI_ICONS.book} 接入说明</button>
+          </div>
+        </div>
+
+        <div class="channel-guide-card ${dt.inbox_count > 0 ? 'ready' : 'waiting'}">
+          <div class="c-header">
+            <span class="c-title-row">${UI_ICONS.dt}<span>钉钉 (DingTalk)</span></span>
+            <span class="c-badge warn">
+              ${dt.inbox_count > 0 ? `收件箱 ${dt.inbox_count} 条 (未测试通道)` : '未经过测试 · 收件箱空'}
+            </span>
+          </div>
+          <div class="c-desc">
+            接入机制: <strong>企业会话内容存档</strong> 或机器人回调<br>
+            测试状态: <span style="color:#fbbf24">尚未经过实机测试（实验性支持）</span><br>
+            使用前提: 须在<strong>系统设置</strong>勾选确认并保存配置；个人版无存档请勿勾选
+          </div>
+          <div class="c-actions">
+            <button class="btn-xs btn-xs-secondary" onclick="testDingTalk()">${UI_ICONS.search} 测试凭证</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showInboxImportModal('DingTalk')">${UI_ICONS.inbox} 写入消息</button>
+            <button class="btn-xs btn-xs-secondary" onclick="showDingTalkTutorial()">${UI_ICONS.book} 接入说明</button>
+          </div>
+        </div>
+      `;
+    }
+
+    let wechatPollTimer = null;
+    // 长任务一律「先启动 job，再轮询进度」：
+    // 旧实现把 25 秒扫描塞进一个请求里，前端 8 秒就断开，必然误报超时/卡死。
+    function wxJobHtml(snap) {
+      const p = snap.progress || {};
+      const bits = [];
+      if (p.scanned_mb !== undefined) bits.push(`已扫描 ${escapeHtml(p.scanned_mb)} MB`);
+      if (p.candidates !== undefined) bits.push(`校验 ${escapeHtml(p.candidates)} 个候选`);
+      if (p.pid) bits.push(`PID ${escapeHtml(p.pid)}`);
+      if (p.wechat_mb) bits.push(`微信占用 ${escapeHtml(p.wechat_mb)} MB`);
+      const detail = bits.length
+        ? `<div style="margin-top:6px;color:#94a3b8;font-size:12px;">${bits.join(" · ")}</div>` : "";
+      return `<div style="font-size:14px;">${escapeHtml(snap.stage || "处理中")}…</div>${detail}
+        <div style="margin-top:14px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:35%;background:#3b82f6;animation:wxjob 1.2s ease-in-out infinite alternate;"></div>
+        </div>
+        <style>@keyframes wxjob{from{transform:translateX(-30%)}to{transform:translateX(230%)}}</style>`;
+    }
+
+    async function watchWechatJob(jobId, silent) {
+      showModal("正在抓取微信密钥", wxJobHtml({ stage: "任务已启动" }));
+      const deadline = Date.now() + 5 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 800));
+        let snap;
+        try {
+          const r = await api("/api/wechat/key-job", { timeout: 6000 });
+          snap = r.data || r;
+        } catch (e) {
+          continue;   // 轮询失败不等于任务失败，继续等
+        }
+        if (!snap || snap.id !== jobId) continue;
+        if (snap.state === "running") {
+          const body = document.getElementById("modalBody");
+          if (body) body.innerHTML = wxJobHtml(snap);
+          continue;
+        }
+        closeModal();
+        const res = snap.result || { ok: snap.state === "done", message: snap.message };
+        if (res.ok) {
+          alert("🎉 " + res.message + "\n\n下一步：点【💾 保存配置并应用】，再点【⚡ 立即采集】。");
+          fetchConfig(true);
+          runInspectChannels();
+          pollAll(true);
+        } else {
+          const notes = (res.notes || []).slice(0, 5).join("\n· ");
+          const hint = "\n\n建议：\n1) 确认微信已登录（窗口标题是你的昵称）\n2) 用管理员身份运行本程序再试\n3) 仍不行就用【📥 从本地文件导入】或直接粘贴密钥";
+          alert("没抓到密钥：\n\n" + (res.message || "未知原因") + (notes ? "\n\n· " + notes : "") + hint);
+        }
+        return;
+      }
+      closeModal();
+      alert("抓取超过 5 分钟仍未结束。请按【微信教程】里的排障步骤检查；若后台仍在扫描，稍后重新打开控制台可看到结果。");
+    }
+
+    async function triggerWechatKeyGuide(autoMode = false) {
+      if (!autoMode) {
+        if (!confirm("【微信 4.x 密钥 · 只读内存扫描】\n\n只读扫描微信进程内存，找到密钥后会用数据库逐页 HMAC 校验，通过才保存。\n4.0.x 与 4.1+ 用同一套流程，通常 2~3 秒完成，不需要关闭或重启微信。\n\n是否开始？")) return;
+      }
+      try {
+        const started = await api("/api/wechat/extract-key", {
+          method: "POST", body: json_stringify({ action: "scan" }), timeout: 20000,
+        });
+        if (started.job) { await watchWechatJob(started.job, autoMode); return; }
+        if (started.ok) {
+          alert("🎉 " + started.message);
+          fetchConfig(true);
+          runInspectChannels();
+          pollAll(true);
+        } else {
+          alert("没抓到密钥：\n\n" + (started.message || "未知原因"));
+        }
+      } catch (e) {
+        if (!autoMode) alert("启动抓取失败: " + e.message);
+      }
+    }
+
+    async function triggerWechatHookGuide() {
+      if (!confirm("【微信 4.1+ · 启动瞬间抓取】\n\n微信 4.1 起，raw key 在派生完页密钥后就被清除，静态内存里没有。\n本方式会在微信启动、打开数据库的那一刻挂载并抓取（只读，不改微信）。\n\n操作顺序：\n1) 点「确定」\n2) 立刻完全退出微信（托盘图标也要退出）\n3) 从桌面重新打开微信并登录\n\n程序会自动等待并抓取。是否开始？")) return;
+      try {
+        const started = await api("/api/wechat/extract-key", {
+          method: "POST", body: json_stringify({ action: "hook" }), timeout: 20000,
+        });
+        if (started.job) { await watchWechatJob(started.job, false); return; }
+        alert(started.message || "启动抓取失败");
+      } catch (e) {
+        alert("启动抓取失败: " + e.message);
+      }
+    }
+
+    async function syncWechatKey() {
+      try {
+        const res = await api("/api/wechat/extract-key", { method: "POST", body: json_stringify({ action: "sync" }) });
+        if (res.ok) {
+          alert("✅ " + res.message);
+          fetchConfig(true);
+          runInspectChannels();
+          pollAll(true);
+        } else {
+          alert("同步未成功: " + res.message);
+        }
+      } catch (e) {
+        alert("同步微信密钥失败: " + e.message);
+      }
+    }
+
+    async function triggerQQKeyGuide() {
+      if (!confirm("【QQ 数据库密钥向导】\n\n系统将以管理员权限唤起向导，自动定位 QQ 并附加调试器读取 16 位密钥。\n向导会自动重启 QQ 并要求在弹窗中点击一次登录。\n抓取成功后会自动验证解密有效性、写入 .env 并固化表结构。\n\n是否现在启动？")) return;
+      try {
+        const res = await api("/api/qq/extract-key", { method: "POST", body: "{}" });
+
+        // 已经就绪或自动补全表结构时，不再重复重启 QQ
+        if (res && (res.action === "already_ready" || res.action === "schema_repaired" || res.skipped)) {
+          showToast(res.message || "QQ 密钥与表结构已就绪，无需重复抓取", "success", 5000);
+          refreshQqBadge();
+          runInspectChannels();
+          fetchConfig(true);
+          pollAll(true);
+          return;
+        }
+
+        showToast(res.message || "已在桌面唤起【QQ取密钥向导】，请配合登录...", "info", 6000);
+
+        // 轮询 /api/qq/status：成功 = 密钥可用 + 表结构已固化（缺一不可）
+        let attempts = 0;
+        let lastDetail = "";
+        const qqPoll = setInterval(async () => {
+          attempts++;
+          try {
+            const st = await api("/api/qq/status");
+            lastDetail = (st && st.detail) || "";
+            if (st && st.ok) {
+              clearInterval(qqPoll);
+              const inp = document.getElementById("wzInput_QQ_KEY");
+              if (inp && st.key_masked) inp.value = st.key_masked;
+              const badge = document.getElementById("wzQqBadge");
+              if (badge) {
+                badge.className = "wz-badge-ok";
+                badge.innerText = "✔ 密钥 + 表结构就绪";
+              }
+              showToast("🎉 QQ 密钥已装配、表结构已固化，可直接采集！", "success", 5000);
+              fetchConfig(true);
+              pollAll(true);
+              return;
+            }
+            // 密钥有了但表结构还没固化：这不是"抓取失败"，得明确记录
+            if (st && st.key_configured && !st.schema_ready) {
+              const hint = document.getElementById("wzQqBadge");
+              if (hint) {
+                hint.className = "wz-badge-warn";
+                hint.innerText = "密钥已就绪 · 待固化表结构";
+              }
+            }
+          } catch (err) {}
+          if (attempts > 120) {
+            clearInterval(qqPoll); // 最多轮询 3 分钟
+            showToast("QQ 向导未在 3 分钟内返回结果" + (lastDetail ? "：" + lastDetail : "") +
+                      "。请查看弹出的向导窗口或 work\\取密钥日志-*.txt", "warning", 8000);
+          }
+        }, 1500);
+
+        pollAll(true);
+      } catch (e) {
+        showToast("启动 QQ 密钥向导失败: " + e.message, "error");
+      }
+    }
+
+    async function refreshQqBadge() {
+      try {
+        const st = await api("/api/qq/status");
+        const badge = document.getElementById("wzQqBadge");
+        if (!badge || !st) return;
+        if (st.ok) {
+          badge.className = "wz-badge-ok";
+          badge.innerText = "✔ 密钥 + 表结构就绪";
+        } else if (st.key_configured) {
+          badge.className = "wz-badge-warn";
+          badge.innerText = "密钥已配置 · " + (st.schema_ready ? "待校验" : "待固化表结构");
+        } else {
+          badge.className = "wz-badge-warn";
+          badge.innerText = "待取密钥";
+        }
+      } catch (err) {}
+    }
+
+    async function testFeishu() {
+      const app = document.getElementById("inp_FS_APP").value.trim();
+      const sec = document.getElementById("inp_FS_SEC").value.trim();
+      try {
+        const res = await api("/api/channels/test-feishu", {
+          method: "POST",
+          body: json_stringify({ params: { FEISHU_APP_ID: app, FEISHU_APP_SECRET: sec } })
+        });
+        if (res.ok) {
+          alert(`✅ 飞书测试成功！\n\n可见群聊数: ${res.chat_count}\n识别群聊: ${(res.sample_chats || []).join('、') || '暂无群聊'}\n\n${res.tip || ''}`);
+        } else {
+          alert(`❌ 飞书连接失败: ${res.message}\n\n${res.tip || ''}`);
+        }
+        pollAll(true);
+      } catch (e) {
+        alert("请求飞书测试失败: " + e.message);
+      }
+    }
+
+    async function testDingTalk() {
+      const app = document.getElementById("inp_DT_APP").value.trim();
+      const sec = document.getElementById("inp_DT_SEC").value.trim();
+      try {
+        const res = await api("/api/channels/test-dingtalk", {
+          method: "POST",
+          body: json_stringify({ params: { DINGTALK_CLIENT_ID: app, DINGTALK_CLIENT_SECRET: sec } })
+        });
+        if (res.ok) {
+          alert(`✅ 钉钉凭证验证成功！\n\n${res.message}\n\n${res.tip || ''}`);
+        } else {
+          alert(`❌ 钉钉测试失败: ${res.message}\n\n${res.tip || ''}`);
+        }
+        pollAll(true);
+      } catch (e) {
+        alert("请求钉钉测试失败: " + e.message);
+      }
+    }
+
+    async function testWecomWebhook() {
+      const hookInp = document.getElementById("inp_WECOM_HOOK");
+      const hook = hookInp ? hookInp.value.trim() : "";
+      if (!hook) {
+        showModal("💼 企业微信 Webhook 配置指引", `
+          <div style="line-height:1.7;">
+            <p style="color:#fde68a; font-weight:600; margin-bottom:8px;">⚠️ 您尚未在参数栏中填写【企微机器人 Webhook】</p>
+            <p><strong>30秒获取 Webhook 地址步骤：</strong></p>
+            <ol style="padding-left:20px; margin-bottom:12px; line-height:1.8;">
+              <li>打开电脑版企业微信，进入您想要接收待办清单的内部群；</li>
+              <li>点击群聊窗口右上角【<strong>...</strong>】->【<strong>添加群机器人</strong>】；</li>
+              <li>点击【<strong>新创机器人</strong>】，命名为“待办提醒助手”；</li>
+              <li>复制生成的 Webhook 地址（形如 <code>https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...</code>）；</li>
+              <li>粘贴到下方的【企微机器人 Webhook】输入框，点击【💾 保存配置并应用】；</li>
+              <li>保存后再点击本按钮，群内即可收到测试通知卡片！</li>
+            </ol>
+            <p style="font-size:12px; color:#94a3b8;">注：群机器人用于<strong>向群内发送待办清单结果</strong>（只发不收）。若不需要群内推送待办，此项可留空。</p>
+          </div>
+        `);
+        if (hookInp) hookInp.focus();
+        return;
+      }
+      try {
+        const res = await api("/api/channels/test-wecom-webhook", {
+          method: "POST",
+          body: json_stringify({ webhook_url: hook })
+        });
+        alert((res.ok ? "✅ " : "❌ ") + res.message);
+        pollAll(true);
+      } catch (e) {
+        alert("测试企微 Webhook 失败: " + e.message);
+      }
+    }
+
+    function showModal(title, bodyHtml) {
+      document.getElementById("modalTitle").innerText = title;
+      document.getElementById("modalBody").innerHTML = bodyHtml;
+      document.getElementById("genericModal").style.display = "flex";
+    }
+
+    function closeModal(e) {
+      document.getElementById("genericModal").style.display = "none";
+    }
+
+    function showWechatTutorial() {
+      showModal("💬 个人微信 4.x 本地解密接入指引", `
+        <ol style="padding-left: 20px; line-height: 1.8;">
+          <li><strong>前提</strong>：电脑上已安装并登录微信 4.x（<code>xwechat_files/&lt;wxid&gt;/db_storage</code> 存在）。
+              微信必须<strong>由您自己在桌面上双击启动</strong>，脚本/后台拉起的微信不读数据库。</li>
+          <li><strong>抓取原理</strong>：微信 <strong>4.0.x</strong> 把密钥缓存在内存里；
+              <strong>4.1+</strong> 改成只留一个 <code>com.Tencent.WCDB.Config.Cipher</code> 配置对象，
+              里面的 blob 用固定掩码 XOR 编码。程序两条路都支持，<strong>不需要关微信、不需要重启</strong>。</li>
+          <li><strong>怎么用</strong>：确认微信已登录（窗口标题是您的昵称）→ 点【🔑 自动抓取微信密钥】，
+              通常 2~3 秒完成。校验方式是把 page 1 的 HMAC 与库里的比对，<strong>通过才保存</strong>。</li>
+          <li><strong>4.1+ 是每库一密钥</strong>：一次抓取会把 <code>message_N.db</code>、<code>contact.db</code> 等
+              全部 20 来个库的密钥一起取到，存在 <code>work\wx_keys.json</code>。缺哪个库就少哪个分片。</li>
+          <li><strong>排障顺序</strong>：
+              <br>① <code>Weixin.exe</code> 是否在跑、窗口标题是否是您的昵称（没登录就没有密钥）；
+              <br>② 是否以管理员身份运行控制台（读进程内存需要权限）；
+              <br>③ 微信是否是"桌面手动启动"的（脚本/SSH 拉起的空壳不读库）；
+              <br>④ 仍不行的，用【📥 从本地文件导入】或直接粘贴 64 位密钥。</li>
+          <li><strong>报"密钥与数据库不匹配"</strong>：换过微信号 / 微信重装或大版本升级，
+              旧密钥已失效，重新抓一次即可（旧密钥救不回来，这是加密设计决定的）。</li>
+          <li><strong>只读保障</strong>：程序只读加密库与 <code>-wal</code>，不开写事务；
+              明文镜像写在 <code>work\\wx_mirror\\</code>，采集只读镜像，绝不碰运行中的微信。</li>
+        </ol>
+      `);
+    }
+
+    function showFeishuTutorial() {
+      showModal("🪶 飞书 Open API 接入教程（尚未经过测试）", `
+        <div style="margin-bottom:12px; padding:10px 12px; border-radius:6px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:#fde68a; font-size:12.5px;">
+          <strong>⚠️ 测试状态与使用前提：</strong>飞书通道目前<strong>尚未经过完整实机测试</strong>（属于实验性支持）。正式使用前，请务必先前往<strong>【⚙️ 系统设置】</strong>勾选启用飞书、填入凭证并测试连通性，点击「保存配置并应用」确认配置后才能使用。
+        </div>
+        <ol style="padding-left: 20px; line-height: 1.8;">
+          <li><strong>创建应用</strong>：登录 <a href="https://open.feishu.cn/app" target="_blank" style="color:#38bdf8;">飞书开放平台</a> 创建「企业自建应用」。</li>
+          <li><strong>开通权限</strong>：进入「权限管理」，开通两个核心权限：
+            <br>• <code>im:message:readonly</code>（读取单聊与群聊消息）
+            <br>• <code>im:chat:readonly</code>（读取会话列表）
+          </li>
+          <li><strong>复制凭证</strong>：在「凭证与基础信息」中复制 <strong>App ID</strong> 与 <strong>App Secret</strong> 填入下方参数栏。</li>
+          <li><strong>关键一步（加群）</strong>：在飞书群设置中，<strong>将该应用机器人添加进需要提取待办的所有群聊</strong>中。未入群的群 API 不可见。</li>
+          <li><strong>发布版本</strong>：在「版本管理与发布」中发布正式版本并通过审核。</li>
+          <li>在<strong>【⚙️ 系统设置】</strong>勾选「飞书」，点击【🔍 测试飞书连通性】验证成功后保存配置即可。</li>
+        </ol>
+      `);
+    }
+
+    function showWecomTutorial() {
+      showModal("💼 企业微信方案与接入机制说明", `
+        <div style="line-height: 1.8;">
+          <p style="color:#fde68a; font-weight:600;">⚠️ 重要架构说明：企业微信在待办助手中的角色定位</p>
+          <p><strong>1. 作为待办结果推送目标（强烈推荐，零门槛）：</strong><br>
+          在企业微信群中创建一个“群机器人”，将 Webhook 地址填入下方参数栏并保存。每天待办汇总完毕后，系统会自动把清单推送到群内，无需登录后台即可查看待办。</p>
+          
+          <p><strong>2. 为什么企业微信不能像 QQ 那样直接抓取本地聊天记录？</strong><br>
+          • <strong>加密机制</strong>：企业微信客户端对本地聊天库采用了腾讯专属的企业硬件绑定加密，无公开解密算法；<br>
+          • <strong>API 权限</strong>：企微官方没有对普通应用或机器人开放读取群聊历史的接口。要想读取群消息，必须由企业管理员向腾讯付费开通<strong>「会话内容存档」</strong>特权（每人每年数百元），且需获得聊天双方知情同意；<br>
+          • <strong>WorkBuddy 连接器</strong>：WorkBuddy 的企微连接器同样遵循官方权限规范，在未购买存档授权时返回 <code>853006（未开通会话内容存档）</code>，因此无法直接收信。</p>
+
+          <p><strong>3. 您的最佳使用方案建议：</strong><br>
+          • <strong>数据输入端</strong>：以 <strong>QQ</strong>（本地 NTQQ 已解密就绪）和 <strong>个人微信</strong>（微信 4.x 本地镜像）为主数据源，覆盖大部分群通知；<br>
+          • <strong>数据输出端</strong>：配置 <strong>企微机器人 Webhook</strong>，作为整理完毕后的待办通知出口；<br>
+          • <strong>配置调整</strong>：在上方复选框中<strong>取消勾选企微作为采集源</strong>（只保留 Webhook 推送），即可避免出现“未收到企微消息”的收件箱黄色或红色提示，流程最清爽稳定！</p>
+        </div>
+      `);
+    }
+
+    function showDingTalkTutorial() {
+      showModal("📌 钉钉接入机制说明（尚未经过测试）", `
+        <div style="margin-bottom:12px; padding:10px 12px; border-radius:6px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); color:#fde68a; font-size:12.5px;">
+          <strong>⚠️ 测试状态与使用前提：</strong>钉钉通道目前<strong>尚未经过完整实机测试</strong>（属于实验性支持）。正式使用前，请务必先在<strong>【⚙️ 系统设置】</strong>中确认勾选钉钉、核对凭证与收件箱接入方式并点击「保存配置并应用」，确认配置后才能生效使用。
+        </div>
+        <div style="line-height: 1.8;">
+          <p><strong>为什么钉钉不能直接读全部群消息？</strong><br>
+          钉钉官方没有对普通应用开放读取所有群历史记录的公网 API。拉取全群记录必须企业单独出资开通「会话内容存档」服务。</p>
+          <p><strong>推荐操作：</strong><br>
+          • <strong>如果您是个人使用/未开通存档</strong>：请直接在控制台<strong>取消勾选钉钉</strong>。未勾选的平台不会触发告警，不影响其他平台汇总；<br>
+          • <strong>如果您有存档拉取脚本或机器人回调</strong>：可通过 <code>inbox_push.py --channel DingTalk</code> 将导出的消息交入程序收件箱，并在【系统设置】中勾选钉钉保存确认。</p>
+        </div>
+      `);
+    }
+
+    function showInboxImportModal(ch) {
+      document.getElementById("inboxChannel").value = ch;
+      document.getElementById("inboxModalTitle").innerText = `录入 ${ch === 'WeCom' ? '企业微信' : '钉钉'} 收件箱消息`;
+      document.getElementById("inboxChatName").value = "";
+      document.getElementById("inboxSender").value = "";
+      document.getElementById("inboxContent").value = "";
+      document.getElementById("inboxModal").style.display = "flex";
+    }
+
+    function closeInboxModal(e) {
+      document.getElementById("inboxModal").style.display = "none";
+    }
+
+    async function submitInboxMessage() {
+      const ch = document.getElementById("inboxChannel").value;
+      const chat = document.getElementById("inboxChatName").value.trim() || "外部导入会话";
+      const sender = document.getElementById("inboxSender").value.trim() || "未知发送人";
+      const content = document.getElementById("inboxContent").value.trim();
+      if (!content) {
+        alert("请输入消息正文或 JSON 内容！");
+        return;
+      }
+
+      let payload = { channel: ch };
+      if (content.startsWith("[") || content.startsWith("{")) {
+        try {
+          payload.messages = JSON.parse(content);
+        } catch (e) {
+          alert("JSON 格式错误，请检查！");
+          return;
+        }
+      } else {
+        payload.messages = [{
+          chat_name: chat,
+          sender: sender,
+          content: content,
+          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+        }];
+      }
+
+      try {
+        const res = await api("/api/channels/import-inbox", { method: "POST", body: json_stringify(payload) });
+        if (res.ok) {
+          alert("✅ " + res.message);
+          closeInboxModal();
+          runInspectChannels();
+          pollAll(true);
+        } else {
+          alert("写入失败: " + res.message);
+        }
+      } catch (e) {
+        alert("请求写入失败: " + e.message);
+      }
+    }
+
+    let _pollCount = 0;
+    function pollAll(force = false) {
+      fetchStatus(force);
+      fetchTasks(force);
+      fetchLogs(force);
+      _pollCount++;
+      // 当处于归档页、显式 force、或每 4 轮轮询自动刷新素材流与待办清单 ()
+      if (currentAppTab === "artifacts" || force || (_pollCount % 4 === 0)) {
+        if (typeof loadArtifactsData === "function") {
+          loadArtifactsData(false);
+        }
+      }
+      hideSplash();
+    }
+
+    function escapeHtml(text) {
+      if (text == null) return "";
+      const str = typeof text === "string" ? text : String(text);
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return str.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function json_stringify(obj) {
+      return JSON.stringify(obj);
+    }
+
+    // 定时轮询：页面隐藏时暂停（后台标签页不必每 3 秒打一次接口），
+    // 重新可见时立即补一次，避免用户切回来看到过期数据。
+    // ==================== 可视化新手引导向导逻辑 ====================
+    let currentWizardStep = 1;
+    let wzDetectData = null;
+    let wzDemoData = null;
+
+
+    // ==================== 导航、多视图与全局反馈逻辑 ====================
+    let currentAppTab = "dashboard";
+    let cachedArtifacts = null;
+    let currentArtFilter = "ALL";
+    let splashHidden = false;
+
+    async function confirmUninstallApp() {
+      if (!confirm("⚠️ 危险操作确认：\n\n您确定要彻底卸载待办总结助手吗？\n\n系统将执行：\n1. 注销 Windows 开机自启动项\n2. 彻底删除桌面与开始菜单应用图标\n3. 还原 QQ 自动更新组件\n4. 彻底销毁本地解密镜像、密钥环、表结构与浏览器缓存\n\n此操作不可逆！卸载完成后控制台将在 3 秒后自动安全关闭。")) {
+        return;
+      }
+      const btn = document.querySelector("#view_settings .btn-danger");
+      if (btn) btn.disabled = true;
+      try {
+        showToast("正在执行彻底卸载与数据销毁...", "info", 3000);
+        const res = await api("/api/app/uninstall", { method: "POST", timeout: 60000 });
+        if (res && res.data && res.data.ok) {
+          isAppUninstalled = true;
+          pollTimers.forEach(clearInterval);
+          pollTimers = [];
+          Object.values(requestStates).forEach(state => {
+            if (state.controller) state.controller.abort();
+          });
+          const connBar = document.getElementById("connBar");
+          if (connBar) connBar.style.display = "none";
+
+          const deferredTip = res.data.deferred_cleanup
+            ? "<li>窗口关闭后约 4 秒内会自动完成被占用缓存与日志的尾项清理</li>"
+            : "";
+          showModal("🎉 彻底卸载已完成", `<div style='padding: 10px; line-height: 1.8; color: #f1f5f9;'><div style='font-size: 15px; font-weight: 700; color: #34d399; margin-bottom: 10px;'>✔ 软件外部关联与解密数据已全部彻底清理干净！</div><ul style='padding-left: 20px; font-size: 13px; color: #94a3b8; margin-bottom: 14px;'><li>Windows 开机自启动项已全部注销</li><li>桌面快捷方式与开始菜单图标已删除</li><li>QQ 自动更新锁定已全部还原</li><li>本地解密镜像、密钥环、表结构与浏览器缓存已彻底销毁</li>${deferredTip}</ul><div style='background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 10px; border-radius: 6px; font-size: 12px; color: #93c5fd;'><strong>【最后一步】</strong>：本窗口与后台服务将在 3 秒后安全关闭。关闭后，您只需将本程序文件夹直接移入回收站或彻底删除即可！</div></div>`);
+          setTimeout(() => {
+            try { window.open("", "_self"); window.close(); } catch (err) {}
+          }, 2500);
+        } else {
+          if (btn) btn.disabled = false;
+          const msg = (res && res.data && res.data.message) || "卸载过程中部分步骤未成功";
+          showModal("⚠️ 卸载未完全成功", `<pre style='white-space:pre-wrap;font-size:12.5px;line-height:1.7;color:#fecdd3;'>${escapeHtml(msg)}</pre>`);
+        }
+      } catch (e) {
+        if (btn) btn.disabled = false;
+        showToast("卸载失败: " + e.message, "error", 6000);
+      }
+    }
+
+    async function createDesktopShortcut() {
+      try {
+        showToast("正在为待办总结助手创建桌面应用快捷方式...", "info", 1500);
+        const res = await api("/api/app/create-shortcut", { method: "POST" });
+        if (res && res.data && res.data.ok) {
+          showToast(res.data.message || "成功在桌面创建「待办总结助手」应用快捷方式！", "success", 4000);
+        } else {
+          showToast((res && res.data && res.data.message) || "创建未成功，请以管理员身份重试", "warning", 3500);
+        }
+      } catch (e) {
+        showToast("创建快捷方式失败: " + e.message, "error");
+      }
+    }
+
+    function hideSplash() {
+      if (splashHidden) return;
+      splashHidden = true;
+      const splash = document.getElementById("appSplash");
+      if (splash) {
+        splash.style.opacity = "0";
+        setTimeout(() => { splash.style.display = "none"; }, 400);
+      }
+    }
+
+    function showToast(msg, type = "info", duration = 3000) {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+      const icons = { success: UI_ICONS.ok, warning: UI_ICONS.warn, error: UI_ICONS.err, info: UI_ICONS.info };
+      const toast = document.createElement("div");
+      toast.className = `toast-item ${type}`;
+      toast.innerHTML = `<span class="toast-ic">${icons[type] || UI_ICONS.info}</span><span style="flex:1;">${escapeHtml(msg)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => { toast.remove(); }, 300);
+      }, duration);
+    }
+
+    function switchAppTab(tabName) {
+      currentAppTab = tabName;
+      const tabs = ["dashboard", "artifacts", "settings", "about"];
+      tabs.forEach(t => {
+        const navEl = document.getElementById(`tabNav_${t}`);
+        const viewEl = document.getElementById(`view_${t}`);
+        if (navEl) navEl.classList.toggle("active", t === tabName);
+        if (viewEl) viewEl.style.display = t === tabName ? "block" : "none";
+      });
+
+      if (tabName === "artifacts") {
+        loadArtifactsData();
+      } else if (tabName === "settings") {
+        syncScheduleSettingsUI();
+      }
+    }
+
+    async function runDiagnose(btn) {
+      const old = btn ? btn.innerText : "";
+      if (btn) { btn.disabled = true; btn.innerText = "自检中..."; }
+      try {
+        // 自检要真解密一次并统计窗口内行数，给足时间
+        const res = await api("/api/diagnose?deep=1", { timeout: 60000 });
+        if (!res || res.status !== "success") throw new Error((res && res.message) || "自检失败");
+        const d = res.data || {};
+        const savedTip = res.saved_to
+          ? `<div style="margin-top:10px;font-size:11px;color:#94a3b8;">报告已保存：${escapeHtml(res.saved_to)}</div>`
+          : "";
+        const verdictLabel = {
+          A_no_new: "✅ 无新消息（不是故障）",
+          B_filtered: "⚠️ 有消息但被过滤（表结构/时间列需核对）",
+          C_no_source: "⛔ 根本没读到数据源",
+          ok: "✅ 采集正常",
+          unknown: "❔ 证据不足"
+        }[d.verdict] || (d.verdict || "-");
+        showModal("采集自检报告", `
+          <div style="margin-bottom:10px;font-weight:600;color:#fff;">结论：${escapeHtml(verdictLabel)}</div>
+          <div style="margin-bottom:10px;color:#cbd5e1;">${escapeHtml(d.conclusion || "")}</div>
+          <pre style="white-space:pre-wrap;font-size:11px;line-height:1.55;max-height:52vh;overflow:auto;
+                      background:rgba(15,23,42,.7);border:1px solid rgba(148,163,184,.25);
+                      border-radius:8px;padding:10px;color:#cbd5e1;">${escapeHtml(res.text || "")}</pre>
+          ${savedTip}
+        `);
+        // 自检完顺手刷新一下列表，让状态条同步
+        loadArtifactsData(false);
+      } catch (e) {
+        showToast("采集自检失败: " + e.message, "error", 6000);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = old || "采集自检"; }
+      }
+    }
+
+    async function loadArtifactsData(force = false) {
+      const badge = document.getElementById("artMetaBadge");
+      const listEl = document.getElementById("artMsgList");
+      if (badge && force) badge.innerText = "正在刷新...";
+
+      try {
+        const res = await api("/api/artifacts/latest");
+        if (res && res.data) {
+          cachedArtifacts = res.data;
+          renderArtifactsView(cachedArtifacts);
+        }
+      } catch (e) {
+        if (badge) badge.innerText = "读取失败";
+        if (listEl) {
+          listEl.innerHTML = `<div class="empty-state"><span class="empty-icon">${UI_ICONS.warn}</span><span class="empty-title">无法读取素材数据</span><span class="empty-desc">${escapeHtml(e.message)}</span></div>`;
+        }
+      }
+    }
+
+    function renderArtifactsView(data) {
+      if (!data) return;
+      const mat = data.material || {};
+      const todo = data.latest_todo || {};
+      const files = data.output_files || [];
+      const history = data.history || [];
+      const cs = data.collect_state || {};
+
+      // 0. 本轮采集状态条：把"为什么 0 条"写在页面上，别让用户自己猜
+      const strip = document.getElementById("artDiagStrip");
+      if (strip) {
+        if (!cs.data_state && !mat.exists) {
+          strip.style.display = "none";
+        } else {
+          const st = String(cs.data_state || "").toLowerCase();
+          const chLines = Object.entries(cs.channel_stats || {}).map(([k, v]) => {
+            const c = v.count == null ? "-" : v.count;
+            return `<code>${escapeHtml(k)}</code> ${escapeHtml(String(v.status || ""))} / ${c} 条`;
+          }).join(" · ");
+          let head = "";
+          if (st === "no_new") {
+            head = `采集链路正常：本轮窗口 <b>${escapeHtml(cs.time_range || "-")}</b> 内确实没有新消息（不是故障）。`;
+          } else if (st === "only_noise") {
+            head = `本轮读到消息，但都是表情/卡片/系统提示，没有可提炼内容。`;
+          } else if (st === "unavailable" || st === "waiting_config") {
+            head = `本轮没有有效数据源（status=${escapeHtml(cs.status || "-")}），请看下面各通道原因。`;
+          } else if (st === "ok") {
+            head = `本轮已采到 ${mat.message_count || 0} 条素材。`;
+          } else {
+            head = `本轮状态：${escapeHtml(cs.status || "-")} / ${escapeHtml(cs.data_state || "-")}`;
+          }
+          strip.innerHTML = `
+            ${head}<br>
+            <span style="color:#94a3b8;">游标 ${escapeHtml(cs.cursor || "-")} ｜ 窗口起点 ${escapeHtml(cs.window_since || "-")} ｜ 窗口终点 ${escapeHtml(cs.window_until || "-")}</span><br>
+            <span style="color:#94a3b8;">通道：${chLines || "（无）"}</span>`;
+          strip.style.display = "block";
+        }
+      }
+
+      // 1. 素材 Meta
+      const metaBadge = document.getElementById("artMetaBadge");
+      const navBadge = document.getElementById("artifactCountBadge");
+      if (metaBadge) {
+        const sampleTag = mat.is_sample ? " (演示示例)" : "";
+        metaBadge.innerText = mat.exists ? `更新于 ${mat.updated_at} · 共 ${mat.message_count} 条有效素材${sampleTag}` : "暂无素材文件";
+      }
+      if (navBadge) {
+        if (mat.message_count > 0) {
+          navBadge.innerText = mat.message_count;
+          navBadge.style.display = "inline-block";
+        } else {
+          navBadge.style.display = "none";
+        }
+      }
+
+      // 2. 素材列表（本轮为空时回显历史留存，证明链路是通的）
+      const liveMsgs = mat.messages || [];
+      if (!liveMsgs.length && history.length) {
+        if (metaBadge) {
+          metaBadge.innerText = `本轮窗口内 0 条 · 以下为历史留存 ${history.length} 条（非本轮窗口）`;
+          metaBadge.style.color = "#fbbf24";
+        }
+        renderArtifactMessageList(history);
+      } else {
+        if (metaBadge) metaBadge.style.color = "#38bdf8";
+        renderArtifactMessageList(liveMsgs);
+      }
+
+      // 3. 最新待办清单
+      const todoTitleEl = document.getElementById("latestTodoName");
+      const todoBoxEl = document.getElementById("todoPreviewBox");
+      if (todoTitleEl) {
+        todoTitleEl.innerText = todo.exists ? `${escapeHtml(todo.filename)} (${escapeHtml(todo.mtime)})` : "未生成";
+      }
+      if (todoBoxEl) {
+        todoBoxEl.innerText = todo.exists && todo.content ? todo.content : "暂未检测到已生成的 todo-*.md 清单文件。\n\n每 3 小时常驻调度器将触发 WorkBuddy 根据 automation-prompt.md 自动提炼待办并写入 output/ 目录。";
+      }
+
+      // 4. 历史产物文件
+      const filesEl = document.getElementById("outputFilesList");
+      if (filesEl) {
+        if (!files.length) {
+          filesEl.innerHTML = `<div style="color: #64748b; font-size: 12px; text-align: center; padding: 12px;">output/ 目录暂无产物文件</div>`;
+        } else {
+          let html = "";
+          files.forEach(f => {
+            const icon = f.type === "todo" ? UI_ICONS.todo : (f.type === "error" ? UI_ICONS.warn : UI_ICONS.doc);
+            const color = f.type === "todo" ? "#34d399" : (f.type === "error" ? "#f87171" : "#94a3b8");
+            html += `
+              <div class="out-file-item" data-filename="${escapeHtml(f.name)}" onclick="viewOutputFile(this.dataset.filename)">
+                <span style="color: ${color}; font-weight: 500;">${icon} ${escapeHtml(f.name)}</span>
+                <span style="color: #64748b; font-size: 11px;">${escapeHtml(f.size_kb)} KB · ${escapeHtml(f.mtime)}</span>
+              </div>
+            `;
+          });
+          filesEl.innerHTML = html;
+        }
+      }
+    }
+
+    function renderArtifactMessageList(messages) {
+      const listEl = document.getElementById("artMsgList");
+      if (!listEl) return;
+
+      const filtered = currentArtFilter === "ALL" 
+        ? messages 
+        : messages.filter(m => (m.source || "").toLowerCase().indexOf(currentArtFilter.toLowerCase()) >= 0);
+
+      if (!filtered.length) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">${UI_ICONS.inbox}</span>
+            <span class="empty-title">当前无此类消息素材</span>
+            <span class="empty-desc">系统每 3 小时自动只读解密增量消息；您也可以点击上方「立即采集一轮」即刻抓取。</span>
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      filtered.forEach(m => {
+        const src = (m.source || "").toLowerCase();
+        let badgeClass = "art-badge-qq";
+        let badgeName = "QQ";
+        if (src.indexOf("wx") >= 0 || src.indexOf("wechat") >= 0) { badgeClass = "art-badge-wx"; badgeName = "微信"; }
+        else if (src.indexOf("wecom") >= 0) { badgeClass = "art-badge-wecom"; badgeName = "企微"; }
+        else if (src.indexOf("feishu") >= 0) { badgeClass = "art-badge-fs"; badgeName = "飞书"; }
+
+        html += `
+          <div class="art-msg-card">
+            <div class="art-msg-header">
+              <span class="${badgeClass}">${badgeName} · ${escapeHtml(m.chat_name || "私聊")}</span>
+              <span style="color: #64748b;">${escapeHtml(m.timestamp || "")}</span>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">发送人: <strong style="color: #cbd5e1;">${escapeHtml(m.sender || "未知")}</strong></div>
+            <div class="art-msg-body">${escapeHtml(m.content || "")}</div>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+
+    function filterArtifacts(source) {
+      currentArtFilter = source;
+      const group = document.getElementById("artFilterGroup");
+      if (group) {
+        const btns = group.querySelectorAll("button");
+        btns.forEach(b => {
+          const match = b.innerText.toLowerCase().indexOf(source.toLowerCase()) >= 0 || (source === "ALL" && b.innerText === "全部");
+          b.className = match ? "btn-xs btn-xs-primary" : "btn-xs btn-xs-secondary";
+        });
+      }
+      if (cachedArtifacts && cachedArtifacts.material) {
+        renderArtifactMessageList(cachedArtifacts.material.messages || []);
+      }
+    }
+
+    async function viewOutputFile(filename) {
+      try {
+        const res = await api(`/api/artifacts/file?name=${encodeURIComponent(filename)}`);
+        if (res && res.data) {
+          const titleEl = document.getElementById("latestTodoName");
+          const boxEl = document.getElementById("todoPreviewBox");
+          if (titleEl) titleEl.innerText = `${filename} (查看历史档案)`;
+          if (boxEl) boxEl.innerText = res.data.content || "文件为空";
+          showToast(`已加载 ${filename}`, "info", 1500);
+        }
+      } catch (e) {
+        showToast(`读取文件失败: ${e.message}`, "error");
+      }
+    }
+
+    function copyTodoText() {
+      const box = document.getElementById("todoPreviewBox");
+      if (!box || !box.innerText) {
+        showToast("暂无可复制的待办内容", "warning");
+        return;
+      }
+      navigator.clipboard.writeText(box.innerText).then(() => {
+        showToast("待办清单内容已成功复制到剪贴板！", "success");
+      }).catch(() => {
+        showToast("剪贴板权限受限，请手动选中复制", "warning");
+      });
+    }
+
+    async function syncScheduleSettingsUI() {
+      try {
+        const res = await api("/api/schedule");
+        if (res && res.data) {
+          const s = res.data;
+          const intInput = document.getElementById("settingIntervalMinutes");
+          const hoursInput = document.getElementById("settingLookbackHours");
+          if (intInput && s.interval_minutes) intInput.value = s.interval_minutes;
+          if (hoursInput && s.hours) hoursInput.value = s.hours;
+        }
+      } catch (e) {
+        console.warn("同步调度设置失败:", e);
+      }
+    }
+
+    async function saveScheduleSettings() {
+      const interval = parseInt(document.getElementById("settingIntervalMinutes")?.value || 180, 10);
+      const hours = parseInt(document.getElementById("settingLookbackHours")?.value || 4, 10);
+      try {
+        const res = await api("/api/schedule", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "update",
+            enabled: true,
+            interval_minutes: interval,
+            hours: hours
+          })
+        });
+        showToast(res.message || "调度计划已更新并热加载！", "success");
+        fetchStatus(true);
+      } catch (e) {
+        showToast("保存失败: " + e.message, "error");
+      }
+    }
+
+    async function checkWizardOnLoad() {
+      try {
+        const res = await api("/api/wizard/state");
+        if (res && res.data && res.data.completed === false) {
+          openWizard(res.data.current_step || 1);
+        }
+      } catch (e) {
+        console.warn("读取向导状态失败:", e);
+      }
+    }
+
+    function openWizard(step = 1) {
+      currentWizardStep = step;
+      const modal = document.getElementById("wizardModal");
+      if (modal) modal.style.display = "flex";
+      renderWizardStep(currentWizardStep);
+      if (currentWizardStep === 2 && !wzDetectData) {
+        wizardAutoDetect();
+      }
+    }
+
+    async function closeWizard(skip = false) {
+      const modal = document.getElementById("wizardModal");
+      if (modal) modal.style.display = "none";
+      if (skip) {
+        try {
+          await api("/api/wizard/state", {
+            method: "POST",
+            body: JSON.stringify({ completed: true, skipped: true })
+          });
+        } catch (e) {
+          console.warn("保存跳过状态失败:", e);
+        }
+      }
+    }
+
+    async function wizardGoStep(targetStep) {
+      if (targetStep < 1 || targetStep > 6) return;
+      currentWizardStep = targetStep;
+      renderWizardStep(currentWizardStep);
+      try {
+        await api("/api/wizard/state", {
+          method: "POST",
+          body: JSON.stringify({ current_step: currentWizardStep, completed: false })
+        });
+      } catch (e) {
+        console.warn("保存步骤失败:", e);
+      }
+      if (currentWizardStep === 2 && !wzDetectData) {
+        wizardAutoDetect();
+      } else if (currentWizardStep === 4) {
+        wzRefreshInspectSummary();
+      }
+    }
+
+    function wzStepPrev() {
+      if (currentWizardStep > 1) {
+        wizardGoStep(currentWizardStep - 1);
+      }
+    }
+
+    async function wzStepNext() {
+      if (currentWizardStep === 1) {
+        wizardGoStep(2);
+      } else if (currentWizardStep === 2) {
+        wizardGoStep(3);
+      } else if (currentWizardStep === 3) {
+        await wzSaveStep3Config();
+        wizardGoStep(4);
+      } else if (currentWizardStep === 4) {
+        wizardGoStep(5);
+      } else if (currentWizardStep === 5) {
+        await wzSaveScheduleConfig();
+        wizardGoStep(6);
+      } else if (currentWizardStep === 6) {
+        await wzCompleteWizard();
+      }
+    }
+
+    function renderWizardStep(step) {
+      for (let i = 1; i <= 6; i++) {
+        const page = document.getElementById(`wzStepPage_${i}`);
+        const nav = document.getElementById(`wzStepNav_${i}`);
+        if (page) page.style.display = i === step ? "block" : "none";
+        if (nav) {
+          nav.classList.toggle("active", i === step);
+          nav.classList.toggle("completed", i < step);
+        }
+      }
+
+      const ind = document.getElementById("wzStepIndicator");
+      if (ind) ind.innerText = `第 ${step} 步 / 共 6 步`;
+
+      const btnPrev = document.getElementById("wzBtnPrev");
+      const btnNext = document.getElementById("wzBtnNext");
+      const btnSkip = document.getElementById("wzBtnSkip");
+
+      if (btnPrev) btnPrev.style.display = step > 1 ? "inline-block" : "none";
+      if (btnSkip) btnSkip.style.display = step < 6 ? "inline-block" : "none";
+
+      if (btnNext) {
+        if (step === 1) {
+          btnNext.innerText = "开始配置 · 下一步";
+          btnNext.className = "btn btn-primary";
+        } else if (step === 3) {
+          btnNext.innerText = "保存配置 (下一步)";
+          btnNext.className = "btn btn-primary";
+        } else if (step === 5) {
+          btnNext.innerText = "保存计划 (下一步)";
+          btnNext.className = "btn btn-primary";
+        } else if (step === 6) {
+          btnNext.innerText = "进入主控制台 🚀";
+          btnNext.className = "btn btn-success";
+        } else {
+          btnNext.innerText = "下一步";
+          btnNext.className = "btn btn-primary";
+        }
+      }
+    }
+
+    async function wizardAutoDetect(force = false) {
+      const container = document.getElementById("wzDetectResults");
+      if (container) {
+        container.innerHTML = `<div style="text-align: center; padding: 30px; color: #94a3b8;"><span class="pulse-dot"></span> 正在自动探测本地运行环境与聊天数据目录...</div>`;
+      }
+      try {
+        const res = await api("/api/wizard/auto-detect", { method: "POST" });
+        if (res && res.data) {
+          wzDetectData = res.data;
+          wzRenderDetect(wzDetectData);
+          wzSyncToInputs(wzDetectData);
+        }
+      } catch (e) {
+        if (container) {
+          container.innerHTML = `<div class="alert alert-danger">体检异常: ${escapeHtml(e.message)}</div>`;
+        }
+      }
+    }
+
+    function wzRenderDetect(data) {
+      const container = document.getElementById("wzDetectResults");
+      if (!container || !data) return;
+
+      const sys = data.system || {};
+      const ch = data.channels || {};
+      const qq = ch.qq || {};
+      const wx = ch.wechat || {};
+      const wecom = ch.wecom || {};
+
+      let html = "";
+
+      // 1. Python & 权限
+      const adminBadge = sys.is_admin ? `<span class="wz-badge-ok">✔ 管理员权限</span>` : `<span class="wz-badge-warn">普通权限 (建议管理员)</span>`;
+      html += `
+        <div class="wz-check-row">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: #f1f5f9;">🐍 Python 运行环境 & 操作系统</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(sys.os)} · Python ${escapeHtml(sys.python_version)} · 依赖库随包自带</div>
+          </div>
+          <div>${adminBadge}</div>
+        </div>
+      `;
+
+      // 2. QQ 状态（真实精准反映）
+      const qqBadge = (qq.current_uin && qq.has_key)
+        ? `<span class="wz-badge-ok">✔ 账号与密钥均已就绪</span>`
+        : (qq.found ? `<span class="wz-badge-warn">账号已定位 · 待配置密钥</span>` : `<span class="wz-badge-gray">未检测到账号</span>`);
+      let qqDetail = qq.current_uin ? `主号: ${escapeHtml(qq.current_uin)} · 密钥: ${qq.has_key ? "已配置" : "待提取 (NO_KEY)"}` : "请确认本机是否安装并登录过电脑版 QQ";
+      html += `
+        <div class="wz-check-row">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: #f1f5f9;">🐧 腾讯 QQ 本地消息库 (nt_msg.db)</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(qqDetail)}</div>
+          </div>
+          <div>${qqBadge}</div>
+        </div>
+      `;
+
+      // 3. 微信状态（真实精准反映）
+      const wxBadge = (wx.has_key && wx.installed)
+        ? `<span class="wz-badge-ok">✔ 微信已就绪 (密钥已配置)</span>`
+        : (wx.storage && wx.running ? `<span class="wz-badge-warn">已运行 · 待抓取密钥</span>` : (wx.storage ? `<span class="wz-badge-warn">数据目录已定位</span>` : `<span class="wz-badge-gray">未检测到 4.x 目录</span>`));
+      let wxDetail = wx.storage ? `目录: ${escapeHtml(wx.storage)} · 状态: ${wx.running ? "运行中" : "未启动"} · 密钥: ${wx.has_key ? "已配置" : "待提取"}` : "支持微信 4.0/4.1+ 自动抓取";
+      html += `
+        <div class="wz-check-row">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: #f1f5f9;">💬 个人微信 4.x 本地库 (SQLCipher4)</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(wxDetail)}</div>
+          </div>
+          <div>${wxBadge}</div>
+        </div>
+      `;
+
+      // 4. 企业微信状态（真实精准反映，杜绝无条件假就绪）
+      const wecomBadge = wecom.is_ready
+        ? `<span class="wz-badge-ok">${escapeHtml(wecom.badge_text || "✔ 已就绪")}</span>`
+        : `<span class="wz-badge-gray">${escapeHtml(wecom.badge_text || "未配置 (可选)")}</span>`;
+      html += `
+        <div class="wz-check-row">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: #f1f5f9;">🏢 企业微信待办推送通道</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(wecom.status_text || "可选推送出口")}</div>
+          </div>
+          <div>${wecomBadge}</div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function wzSyncToInputs(data) {
+      if (!data) return;
+      const ch = data.channels || {};
+      const qq = ch.qq || {};
+      const wx = ch.wechat || {};
+      const wecom = ch.wecom || {};
+
+      const inputQqUin = document.getElementById("wzInput_QQ_UIN");
+      const inputQqKey = document.getElementById("wzInput_QQ_KEY");
+      const badgeQq = document.getElementById("wzQqBadge");
+
+      if (inputQqUin && qq.current_uin) inputQqUin.value = qq.current_uin;
+      if (inputQqKey && qq.has_key && !inputQqKey.value) {
+        inputQqKey.value = qq.key_val || "";
+      }
+      if (badgeQq) {
+        if (qq.current_uin && qq.has_key) {
+          badgeQq.className = "wz-badge-ok";
+          badgeQq.innerText = "✔ 密钥已配置";
+        } else if (qq.current_uin) {
+          badgeQq.className = "wz-badge-warn";
+          badgeQq.innerText = "待配置密钥 (NO_KEY)";
+        }
+      }
+
+      const inputWxKey = document.getElementById("wzInput_WX_KEY");
+      const badgeWx = document.getElementById("wzWxBadge");
+      if (inputWxKey && wx.has_key && !inputWxKey.value) {
+        inputWxKey.value = wx.key_val || "";
+      }
+      if (badgeWx) {
+        if (wx.has_key) {
+          badgeWx.className = "wz-badge-ok";
+          badgeWx.innerText = "✔ 密钥已配置";
+        } else if (wx.installed || wx.storage) {
+          badgeWx.className = "wz-badge-warn";
+          badgeWx.innerText = "待抓取密钥";
+        }
+      }
+    }
+
+    function wzToggleAdvancedPlatforms() {
+      const box = document.getElementById("wzAdvancedChannelsBox");
+      const icon = document.getElementById("wzAdvToggleIcon");
+      if (!box) return;
+      const isHidden = box.style.display === "none";
+      box.style.display = isHidden ? "block" : "none";
+      if (icon) icon.innerText = isHidden ? "折叠 ▲" : "展开 ▼";
+    }
+
+    async function wzTriggerWechatKeyExtract() {
+      const jobBox = document.getElementById("wzWxJobBox");
+      if (jobBox) {
+        jobBox.style.display = "block";
+        jobBox.innerHTML = "<span class='pulse-dot'></span> 正在扫描内存抓取微信 64 位密钥，请保持微信正常登录中...";
+      }
+      try {
+        const res = await api("/api/wechat/extract-key", { method: "POST" });
+        // 只要任务已触发或已在运行中，立即启动轮询追踪进度
+        if (res && (res.job || res.state === "running" || res.ok)) {
+          wzPollWechatJob();
+        } else if (res && res.message) {
+          if (jobBox) jobBox.innerHTML = escapeHtml(res.message);
+        }
+      } catch (e) {
+        if (jobBox) jobBox.innerHTML = `<span style="color:#f87171;">抓取失败: ${escapeHtml(e.message)}</span>`;
+      }
+    }
+
+    function wzPollWechatJob() {
+      const jobBox = document.getElementById("wzWxJobBox");
+      const timer = setInterval(async () => {
+        try {
+          const res = await api("/api/wechat/key-job");
+          const job = res.data;
+          if (!job) return;
+          
+          const stageText = job.stage || job.message || "正在提取...";
+          if (jobBox) {
+            jobBox.innerHTML = `<span class='pulse-dot'></span> 状态: ${escapeHtml(stageText)}`;
+          }
+
+          if (job.state === "done" || (job.result && job.result.ok)) {
+            clearInterval(timer);
+            const msg = (job.result && job.result.message) || job.message || "微信 64 位密钥已成功获取！";
+            if (jobBox) jobBox.innerHTML = `<span style="color:#34d399; font-weight:600;">✔ ${escapeHtml(msg)}</span>`;
+            showToast("✔ " + msg, "success", 4000);
+            
+            const badgeWx = document.getElementById("wzWxBadge");
+            if (badgeWx) { badgeWx.className = "wz-badge-ok"; badgeWx.innerText = "✔ 密钥已配置"; }
+            
+            // 自动把提取到的密钥填入输入框
+            try {
+              const cfg = await api("/api/config");
+              if (cfg && cfg.env && cfg.env.WX_DBKEY) {
+                const inputWx = document.getElementById("wzInput_WX_KEY");
+                if (inputWx) inputWx.value = cfg.env.WX_DBKEY;
+              }
+            } catch (err) {}
+            fetchConfig(true);
+            pollAll(true);
+          } else if (job.state === "failed" || job.state === "fail" || job.state === "timeout") {
+            clearInterval(timer);
+            const errMsg = (job.result && job.result.message) || job.message || "抓取未完成，请确认微信是否处于登录状态";
+            if (jobBox) jobBox.innerHTML = `<span style="color:#f87171;">✘ ${escapeHtml(errMsg)}</span>`;
+            showToast("微信抓取未成功: " + errMsg, "warning", 4000);
+          }
+        } catch (e) {
+          // 轮询偶发超时不直接退出，等待下一次 tick
+        }
+      }, 1000);
+    }
+
+    async function wzTestWecomHook() {
+      const input = document.getElementById("wzInput_WECOM_HOOK");
+      const url = input ? input.value.trim() : "";
+      if (!url) {
+        showToast("请先输入企业微信机器人 Webhook 地址", "warning");
+        return;
+      }
+      try {
+        const res = await api("/api/channels/test-wecom-webhook", {
+          method: "POST",
+          body: JSON.stringify({ webhook_url: url })
+        });
+        showToast(res.message || "测试消息发送成功！", "success");
+      } catch (e) {
+        showToast("发送测试失败: " + e.message, "error");
+      }
+    }
+
+    async function wzSaveStep3Config() {
+      const enabled = [];
+      if (document.getElementById("wzPlat_QQ")?.checked) enabled.push("QQ");
+      if (document.getElementById("wzPlat_WeChat")?.checked) enabled.push("WeChat");
+      if (document.getElementById("wzPlat_WeCom")?.checked) enabled.push("WeCom");
+
+      const updates = {};
+      const uin = document.getElementById("wzInput_QQ_UIN")?.value.trim();
+      const qqKey = document.getElementById("wzInput_QQ_KEY")?.value.trim();
+      const wxKey = document.getElementById("wzInput_WX_KEY")?.value.trim();
+      const wecomHook = document.getElementById("wzInput_WECOM_HOOK")?.value.trim();
+      const fsApp = document.getElementById("wzInput_FS_APP")?.value.trim();
+      const fsSec = document.getElementById("wzInput_FS_SEC")?.value.trim();
+      const dtApp = document.getElementById("wzInput_DT_APP")?.value.trim();
+      const dtSec = document.getElementById("wzInput_DT_SEC")?.value.trim();
+
+      if (uin) updates.QQ_TARGET_UIN = uin;
+      if (qqKey) updates.QQ_DBKEY = qqKey;
+      if (wxKey) updates.WX_DBKEY = wxKey;
+      if (wecomHook) updates.WECOM_WEBHOOK_URL = wecomHook;
+      if (fsApp) updates.FEISHU_APP_ID = fsApp;
+      if (fsSec) updates.FEISHU_APP_SECRET = fsSec;
+      if (dtApp) updates.DINGTALK_CLIENT_ID = dtApp;
+      if (dtSec) updates.DINGTALK_CLIENT_SECRET = dtSec;
+
+      try {
+        await api("/api/config", {
+          method: "POST",
+          body: JSON.stringify({
+            config_mode: "custom",
+            enabled_platforms: enabled,
+            params: updates
+          })
+        });
+        fetchConfig();
+      } catch (e) {
+        console.warn("保存配置异常:", e);
+        showToast("保存配置异常: " + e.message, "error");
+      }
+    }
+
+    async function wzRefreshInspectSummary() {
+      try {
+        const res = await api("/api/channels/inspect");
+        const data = res.data || {};
+        const qqEl = document.getElementById("wzInspect_QQ");
+        const wxEl = document.getElementById("wzInspect_WeChat");
+        if (qqEl && data.QQ) {
+          qqEl.innerText = data.QQ.status === "READY" ? "✔ 正常可用" : data.QQ.summary || "需配置";
+          qqEl.style.color = data.QQ.status === "READY" ? "#34d399" : "#fbbf24";
+        }
+        if (wxEl && data.WeChat) {
+          wxEl.innerText = data.WeChat.status === "READY" ? "✔ 正常可用" : data.WeChat.summary || "需配置";
+          wxEl.style.color = data.WeChat.status === "READY" ? "#34d399" : "#fbbf24";
+        }
+      } catch (e) {
+        console.warn("体检概要失败:", e);
+      }
+    }
+
+    async function wzGenerateDemoData() {
+      const container = document.getElementById("wzDemoRenderContainer");
+      if (container) {
+        container.innerHTML = "<div style='text-align:center; padding: 20px; color: #94a3b8;'><span class='pulse-dot'></span> 正在生成高保真脱敏示例素材并渲染待办提炼效果...</div>";
+      }
+      try {
+        const res = await api("/api/wizard/init-demo", { method: "POST" });
+        if (res && res.data) {
+          wzDemoData = res.data;
+          wzRenderDemoItems(wzDemoData.items || []);
+        }
+      } catch (e) {
+        if (container) container.innerHTML = `<div class="alert alert-danger">生成失败: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function wzRenderDemoItems(items) {
+      const container = document.getElementById("wzDemoRenderContainer");
+      if (!container || !items.length) return;
+
+      let html = `<div style="margin-bottom: 8px; font-size: 12px; color: #34d399;">✔ 已成功生成 ${items.length} 条高保真实战场景待办示例：</div>`;
+      items.forEach(item => {
+        const todo = item.todo || {};
+        html += `
+          <div class="wz-demo-item">
+            <div class="wz-demo-header">
+              <span>📌 ${escapeHtml(item.channel_title)} · ${escapeHtml(item.sender)}</span>
+              <span>${escapeHtml(item.timestamp)}</span>
+            </div>
+            <div class="wz-demo-raw">“${escapeHtml(item.raw_text)}”</div>
+            <div class="wz-demo-todo">
+              <span>⚡ 提炼待办: ${escapeHtml(todo.title)}</span>
+              <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">⏰ ${escapeHtml(todo.deadline)}</span>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    async function wzSaveScheduleConfig() {
+      const interval = parseInt(document.getElementById("wzScheduleInterval")?.value || 180, 10);
+      const hours = parseInt(document.getElementById("wzScheduleHours")?.value || 4, 10);
+      try {
+        await api("/api/schedule", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "update",
+            enabled: true,
+            interval_minutes: interval,
+            hours: hours
+          })
+        });
+      } catch (e) {
+        console.warn("保存调度计划异常:", e);
+      }
+    }
+
+    async function wzCompleteWizard() {
+      try {
+        await api("/api/wizard/complete", { method: "POST" });
+      } catch (e) {
+        console.warn("完成向导异常:", e);
+      }
+      closeWizard();
+      pollAll(true);
+      fetchConfig();
+    }
+
+    fetchConfig();
+    pollAll(true);
+    checkWizardOnLoad();
+    pollTimers = [
+      setInterval(() => { if (!document.hidden && !isAppUninstalled) fetchStatus(); }, 3000),
+      setInterval(() => { if (!document.hidden && !isAppUninstalled) fetchTasks(); }, 3500),
+      setInterval(() => { if (!document.hidden && !isAppUninstalled) fetchLogs(); }, 2500)
+    ];
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !isAppUninstalled) pollAll(true);
+    });
+    window.addEventListener("online", () => { if (!isAppUninstalled) pollAll(true); });
+    window.addEventListener("pagehide", () => {
+      pollTimers.forEach(clearInterval);
+      Object.values(requestStates).forEach(state => {
+        if (state.controller) state.controller.abort();
+      });
+    });
+  </script>
+
+  <!-- 可视化首次启动/新手向导弹窗 -->
+  <div class="wizard-backdrop" id="wizardModal" onclick="event.stopPropagation()">
+    <div class="wizard-box">
+      <div class="wizard-header">
+        <div class="wizard-title-wrap">
+          <h2>待办自动汇总助手 · 首次启动配置向导</h2>
+          <p id="wzHeaderSubtitle">仅需 2~3 分钟即可完成环境与核心聊天通道装配，开启全自动待办提炼</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="wzStepIndicator" style="font-size: 11px; color: var(--cyan); background: rgba(56, 189, 248, 0.1); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.28); font-family: var(--font-mono);">第 1 步 / 共 6 步</span>
+          <button style="background: none; border: none; color: var(--text-secondary); font-size: 12.5px; cursor: pointer; padding: 4px 8px; border-radius: 4px;" onclick="closeWizard(true)">跳过向导</button>
+        </div>
+      </div>
+
+      <div class="wizard-stepper" id="wzStepper">
+        <div class="wz-step-item active" id="wzStepNav_1" onclick="wizardGoStep(1)"><div class="wz-step-num">1</div><span>欢迎使用</span></div>
+        <div class="wz-step-item" id="wzStepNav_2" onclick="wizardGoStep(2)"><div class="wz-step-num">2</div><span>环境体检</span></div>
+        <div class="wz-step-item" id="wzStepNav_3" onclick="wizardGoStep(3)"><div class="wz-step-num">3</div><span>核心通道装配</span></div>
+        <div class="wz-step-item" id="wzStepNav_4" onclick="wizardGoStep(4)"><div class="wz-step-num">4</div><span>测试与示例</span></div>
+        <div class="wz-step-item" id="wzStepNav_5" onclick="wizardGoStep(5)"><div class="wz-step-num">5</div><span>调度与指南</span></div>
+        <div class="wz-step-item" id="wzStepNav_6" onclick="wizardGoStep(6)"><div class="wz-step-num">6</div><span>开启使用</span></div>
+      </div>
+
+      <div class="wizard-body">
+        <!-- 步骤 1: 欢迎页 -->
+        <div id="wzStepPage_1">
+          <div class="wz-hero-card">
+            <h3 style="font-size: 15.5px; color: var(--text-main); margin-bottom: 8px;">欢迎使用待办自动汇总助手</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.65;">
+              本系统专为日常多端办公场景打造，支持在 Windows 电脑上<strong>全自动、只读、免打扰</strong>地采集 QQ 与微信本地消息，统一提炼成带原始消息溯源的结构化待办清单，并定时推送至企业微信。
+            </p>
+          </div>
+
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">三大安全与诚信原则</div>
+          <div class="wz-grid-3">
+            <div class="wz-card">
+              <div class="wz-card-title"><span>绝对安全只读</span></div>
+              <div class="wz-card-desc">仅在本地复制聊天数据库副本再解密，绝不向原库写入任何字节，不影响正在聊天的 QQ 与微信，绝不对外传输原始聊天记录。</div>
+            </div>
+            <div class="wz-card">
+              <div class="wz-card-title"><span>真实来源可溯</span></div>
+              <div class="wz-card-desc">提炼出的每一条待办，均明确携带【会话名、发送人、发送时间、消息编号】。AI 无法核实真实信源的内容绝不进入清单。</div>
+            </div>
+            <div class="wz-card">
+              <div class="wz-card-title"><span>故障主动告警</span></div>
+              <div class="wz-card-desc">任何通道读取异常均生成《异常诊断单》并在清单首行清晰警示，自动冻结增量游标，修复后原位补录，绝不丢消息。</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; padding: 12px 15px; background: rgba(47, 129, 247, 0.08); border: 1px solid rgba(47, 129, 247, 0.25); border-radius: 8px; font-size: 12px; color: #cbd5e1; line-height: 1.7;">
+            <strong>向导说明：</strong>首次启动时我们将协助您进行本地环境体检、绑定核心聊天平台并生成演示效果。过程约耗时 2 分钟，中途可随时跳过或在控制台中重新运行。
+          </div>
+
+          <div style="margin-top: 10px; padding: 12px 15px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; font-size: 12px; color: #fde68a; line-height: 1.7;">
+            <strong>⚠️ 重要引导提示（请务必留意）：</strong><br>
+            1. <strong>钉钉和飞书通道尚未经过实机测试：</strong>目前仅 <strong>QQ、个人微信与企业微信推送</strong>已完成完整实机验证；<strong>飞书与钉钉</strong>仅提供实验性支持，向导默认不会自动启用。<br>
+            2. <strong>使用前须先在【⚙️ 系统设置】确认配置：</strong>无论使用哪些平台（尤其是启用飞书或钉钉），首次使用都必须先进入<strong>【⚙️ 系统设置】</strong>页面确认配置模式、勾选对应平台并点击「保存配置并应用」后，功能才会正式生效。
+          </div>
+        </div>
+
+        <!-- 步骤 2: 环境体检 -->
+        <div id="wzStepPage_2" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: var(--text-main);">本机运行环境与聊天软件体检</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">检测当前机器的运行环境、管理员权限及本地 QQ/微信安装状态</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="wizardAutoDetect(true)">重新体检</button>
+          </div>
+          <div id="wzDetectResults">
+            <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
+              <span class="pulse-dot"></span> 正在自动侦测本地环境，请稍候...
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤 3: 核心通道装配 -->
+        <div id="wzStepPage_3" style="display: none;">
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-main);">核心平台选择与快捷装配</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">推荐使用已实测验证的「QQ + 个人微信 + 企业微信推送」；飞书与钉钉尚未经过实机测试，如需使用须先在【系统设置】确认配置后才能生效</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 7px; font-size: 13px; background: var(--bg-inset); padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); cursor: pointer;">
+              <input type="checkbox" id="wzPlat_QQ" checked> <span class="plat-dot plat-qq">QQ</span><span>腾讯 QQ (NT)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 7px; font-size: 13px; background: var(--bg-inset); padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); cursor: pointer;">
+              <input type="checkbox" id="wzPlat_WeChat" checked> <span class="plat-dot plat-wx">微信</span><span>个人微信 (4.x)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 7px; font-size: 13px; background: var(--bg-inset); padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); cursor: pointer;">
+              <input type="checkbox" id="wzPlat_WeCom" checked> <span class="plat-dot plat-wc">企微</span><span>企业微信 (推送出口)</span>
+            </label>
+          </div>
+
+          <div class="wz-card" style="margin-bottom: 12px;">
+            <div class="wz-card-title">
+              <span class="plat-dot plat-qq">QQ</span><span>QQ 通道配置</span>
+              <span id="wzQqBadge" class="wz-badge-gray" style="margin-left:auto;">待检测</span>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+              <div class="form-group">
+                <label>主 QQ 账号 (UIN)</label>
+                <input type="text" id="wzInput_QQ_UIN" placeholder="例如：123456789">
+              </div>
+              <div class="form-group">
+                <label>QQ 数据库密钥 (16 位口令)</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="wzInput_QQ_KEY" placeholder="16 位 ASCII 密钥" style="flex: 1;">
+                  <button class="btn btn-secondary btn-sm" onclick="triggerQQKeyGuide()">抓取指引</button>
+                </div>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              提示：首次抓取 QQ 密钥可在管理员身份下运行 <code>Admin_Init.bat</code>，或在 QQ 登录时自动拦截。
+            </div>
+          </div>
+
+          <div class="wz-card" style="margin-bottom: 12px;">
+            <div class="wz-card-title">
+              <span class="plat-dot plat-wx">微信</span><span>个人微信 (4.x) 通道配置</span>
+              <span id="wzWxBadge" class="wz-badge-gray" style="margin-left:auto;">待检测</span>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 12px; margin-top: 8px;">
+              <div class="form-group">
+                <label>微信 64 位数据库密钥 (Raw Key)</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="wzInput_WX_KEY" placeholder="64 位十六进制密钥" style="flex: 1;">
+                  <button class="btn btn-primary btn-sm" onclick="wzTriggerWechatKeyExtract()">自动抓取微信密钥</button>
+                </div>
+              </div>
+            </div>
+            <div id="wzWxJobBox" style="display: none; margin-top: 8px; padding: 8px 12px; background: var(--bg-surface); border-radius: 6px; font-size: 12px;"></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              提示：保持微信 4.x 处于日常登录状态，点击「自动抓取微信密钥」即可在 2~3 秒内从内存中安全解码密钥，无需重启微信。
+            </div>
+          </div>
+
+          <div class="wz-card" style="margin-bottom: 12px;">
+            <div class="wz-card-title">
+              <span class="plat-dot plat-wc">企微</span><span>企业微信待办推送出口</span>
+              <span class="wz-badge-ok" style="margin-left:auto;">推荐默认</span>
+            </div>
+            <div class="form-group" style="margin-top: 8px;">
+              <label>企业微信群机器人 Webhook 地址（可选兜底）</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="wzInput_WECOM_HOOK" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." style="flex: 1;">
+                <button class="btn btn-secondary btn-sm" onclick="wzTestWecomHook()">测试发送</button>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              说明：默认由 WorkBuddy 内置企微连接器自动完成待办发送（无需公网地址）；群机器人 Webhook 作为可选容灾兜底。
+            </div>
+          </div>
+
+          <div style="border: 1px dashed rgba(245, 158, 11, 0.45); border-radius: 8px; padding: 10px 14px; background: var(--bg-inset);">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="wzToggleAdvancedPlatforms()">
+              <span style="font-size: 12px; font-weight: 600; color: #fbbf24;">高级扩展选项：飞书与钉钉通道（尚未经过测试 · 需在系统设置确认启用）</span>
+              <span id="wzAdvToggleIcon" style="font-size: 12px; color: var(--text-muted);">展开 ▼</span>
+            </div>
+            <div style="font-size: 11.5px; color: #fde68a; margin-top: 6px; line-height: 1.55;">
+              ⚠️ <strong>重要提醒：</strong>钉钉和飞书通道目前<strong>尚未经过实机测试</strong>，且本向导仅保存凭证不会自动启用。如需使用，请先前往<strong>【⚙️ 系统设置】</strong>勾选对应平台、测试连通性并点击「保存配置并应用」，确认配置之后才能使用。
+            </div>
+            <div id="wzAdvancedChannelsBox" style="display: none; margin-top: 12px;">
+              <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>飞书 App ID</label><input type="text" id="wzInput_FS_APP" placeholder="cli_xxxxxxxx"></div>
+                <div class="form-group"><label>飞书 App Secret</label><input type="password" id="wzInput_FS_SEC" placeholder="应用秘钥"></div>
+                <div class="form-group"><label>钉钉 Client ID</label><input type="text" id="wzInput_DT_APP" placeholder="dingxxxxxxxx"></div>
+                <div class="form-group"><label>钉钉 Client Secret</label><input type="password" id="wzInput_DT_SEC" placeholder="应用秘钥"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤 4: 连通性测试与示例素材体验 -->
+        <div id="wzStepPage_4" style="display: none;">
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-main);">连通性测试与高保真待办示例体验</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">验证通道就绪情况，一键生成脱敏示例素材，即时感受待办提炼效果</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;" id="wzChannelQuickStatus">
+            <div class="wz-card" style="flex: 1; padding: 10px;">
+              <div style="font-size: 11px; color: var(--text-secondary);">QQ 通道</div>
+              <div id="wzInspect_QQ" style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 4px;">检测中...</div>
+            </div>
+            <div class="wz-card" style="flex: 1; padding: 10px;">
+              <div style="font-size: 11px; color: var(--text-secondary);">个人微信</div>
+              <div id="wzInspect_WeChat" style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 4px;">检测中...</div>
+            </div>
+            <div class="wz-card" style="flex: 1; padding: 10px;">
+              <div style="font-size: 11px; color: var(--text-secondary);">企微推送</div>
+              <div id="wzInspect_WeCom" style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 4px;">已就绪</div>
+            </div>
+          </div>
+
+          <div class="wz-demo-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span style="font-size: 13px; font-weight: 700; color: var(--cyan);">体验真实脱敏示例素材与提炼效果</span>
+                <div style="font-size: 11px; color: var(--text-secondary);">无需等待真实聊天消息产生，一键模拟多端原始消息提炼为结构化清单的过程</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="wzGenerateDemoData()">生成演示待办素材</button>
+            </div>
+            <div id="wzDemoRenderContainer">
+              <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 12px; border: 1px dashed var(--border-subtle); border-radius: 8px;">
+                点击上方「生成演示待办素材」按钮，即时预览 4 条典型办公场景的消息提取与待办溯源效果
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤 5: 自动调度与使用教程 -->
+        <div id="wzStepPage_5" style="display: none;">
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-main);">自动化采集计划与日常极简使用指南</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">系统已为您配置开箱即用的常驻调度计划，日常使用完全无需人工值守</div>
+          </div>
+
+          <div class="wz-card" style="margin-bottom: 14px;">
+            <div class="wz-card-title"><span>定时采集节奏设置</span></div>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+              <div class="form-group">
+                <label>增量采集周期 (分钟)</label>
+                <input type="number" id="wzScheduleInterval" value="180" min="30" max="1440">
+                <span style="font-size: 10.5px; color: var(--text-muted);">推荐 180 分钟 (每 3 小时自动采集一次)</span>
+              </div>
+              <div class="form-group">
+                <label>单次回看时间跨度 (小时)</label>
+                <input type="number" id="wzScheduleHours" value="4" min="1" max="48">
+                <span style="font-size: 10.5px; color: var(--text-muted);">推荐 4 小时，保证与 3 小时采集周期平滑重叠覆盖</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">日常使用：仅需记住两件事</div>
+          <div class="wz-check-row">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">1. 平时完全不用管，自动在后台运行</div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">开机后程序常驻后台，每 3 小时自动采集增量聊天记录，WorkBuddy 自动推送到企业微信。</div>
+            </div>
+            <span class="wz-badge-ok">常驻全自动</span>
+          </div>
+          <div class="wz-check-row">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">2. 想要立刻整理一次：点「立即采集」</div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">无需等待下一次定时周期，随时可在控制台点击「立即采集」手动触发一轮采集。</div>
+            </div>
+            <span class="wz-badge-ok">随心单次整理</span>
+          </div>
+        </div>
+
+        <!-- 步骤 6: 完成页 -->
+        <div id="wzStepPage_6" style="display: none;">
+          <div style="text-align: center; padding: 18px 10px;">
+            <div style="width: 48px; height: 48px; margin: 0 auto 10px; border-radius: 50%; background: var(--teal-soft); border: 1px solid rgba(20,184,166,0.4); display: flex; align-items: center; justify-content: center; color: #5eead4;">
+              <svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <h3 style="font-size: 17px; color: var(--text-main); margin-bottom: 6px;">待办总结助手已全部配置就绪</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); max-width: 560px; margin: 0 auto; line-height: 1.6;">
+              您已成功完成首次配置！当前系统已处于随时待命状态，可以点击下方按钮进入主控制台大盘。
+            </p>
+          </div>
+
+          <div class="wz-card" style="max-width: 580px; margin: 0 auto 14px auto;">
+            <div class="wz-card-title"><span>已启用配置概要</span></div>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">QQ 通道：</span><span id="wzSummary_QQ" style="color: #5eead4;">已绑定</span></div>
+              <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">个人微信通道：</span><span id="wzSummary_WeChat" style="color: #5eead4;">已配置</span></div>
+              <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">推送出口：</span><span style="color: var(--cyan);">WorkBuddy 企微连接器 (默认)</span></div>
+              <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">采集节奏：</span><span id="wzSummary_Schedule" style="color: var(--text-main);">每 180 分钟自动采集</span></div>
+              <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-secondary);">飞书 / 钉钉：</span><span style="color: #fbbf24;">尚未经过测试（需在系统设置确认启用）</span></div>
+            </div>
+          </div>
+
+          <div style="max-width: 580px; margin: 0 auto 12px auto; padding: 10px 14px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); font-size: 12px; color: #fde68a; line-height: 1.6;">
+            <strong>使用前确认提示：</strong>若您跳过向导或需要启用<strong>飞书 / 钉钉</strong>（目前均尚未经过实机测试），请先前往<strong>【⚙️ 系统设置】</strong>页面确认配置模式、勾选平台并点击「保存配置并应用」，确认配置后方能正式使用。
+          </div>
+
+          <div style="text-align: center; font-size: 12px; color: var(--text-muted);">
+            <div style="margin: 10px 0;">
+              <button class="btn btn-primary" onclick="createDesktopShortcut()">一键在桌面创建「待办总结助手」应用图标</button>
+            </div>
+            提示：后续若需修改配置或重新运行本向导，可随时在控制台顶部点击「新手向导」按钮。
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-footer">
+        <div>
+          <button class="btn btn-secondary btn-sm" id="wzBtnSkip" onclick="closeWizard(true)">跳过向导</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary btn-sm" id="wzBtnPrev" style="display: none;" onclick="wzStepPrev()">上一步</button>
+          <button class="btn btn-primary btn-sm" id="wzBtnNext" onclick="wzStepNext()">开始配置 · 下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示与教程弹窗 -->
+  <div class="modal-backdrop" id="genericModal" onclick="closeModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="modalTitle">指南说明</span>
+        <button style="background:none; border:none; color:var(--text-secondary); font-size:18px; cursor:pointer;" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody" style="line-height:1.6; color:#cbd5e1;"></div>
+      <div style="margin-top:16px; text-align:right;">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 收件箱消息录入弹窗 -->
+  <div class="modal-backdrop" id="inboxModal" onclick="closeInboxModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="inboxModalTitle">录入收件箱待办消息</span>
+        <button style="background:none; border:none; color:var(--text-secondary); font-size:18px; cursor:pointer;" onclick="closeInboxModal()">×</button>
+      </div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+        将外部平台（如企业微信或钉钉）的消息安全交入程序收件箱，供聚合器统一汇总去重并提炼待办。
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>目标通道</label>
+        <input type="text" id="inboxChannel" readonly style="background:var(--bg-inset); color:var(--text-secondary);">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>会话名称（群名 / 对方姓名）</label>
+        <input type="text" id="inboxChatName" placeholder="例如：学院周例会工作群">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>发送人姓名</label>
+        <input type="text" id="inboxSender" placeholder="例如：李处长">
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>消息正文或 JSON 数组</label>
+        <textarea id="inboxContent" rows="4" placeholder="直接输入消息正文（例如：请各位老师于明天下午五点前提交实训总结），或粘贴连接器导出的 JSON 数组"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeInboxModal()">取消</button>
+        <button class="btn btn-success btn-sm" onclick="submitInboxMessage()">写入收件箱</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

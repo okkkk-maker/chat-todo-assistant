@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install offline wheels for tests
+        shell: pwsh
+        run: |
+          python -m pip install --no-index --find-links vendor/wheels sqlcipher3-wheels pycryptodome zstandard
+
+      - name: Compile-check Python sources
+        run: python -m compileall -q app.py run.py server.py tools tests
+
+      - name: Run unit tests
+        run: python tests/test_bugfixes.py
+
+      - name: Run WeChat self-test (no memory scan)
+        run: python tools/wx_selftest.py --no-scan

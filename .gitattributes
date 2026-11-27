@@ -1,0 +1,23 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Keep Windows batch & PowerShell scripts CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Keep Python, web, config, and docs LF
+*.py text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
+
+# Binary assets
+*.ico binary
+*.png binary
+*.jpg binary
+*.whl binary
+*.zip binary
+*.db binary

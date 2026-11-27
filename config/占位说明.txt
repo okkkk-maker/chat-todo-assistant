@@ -1,0 +1,2 @@
+本目录由 Admin_Init.bat 自动生成 schema.json（本机 QQ 的真实表结构）。
+不要把别人的 schema.json 复制到这台机器上。
